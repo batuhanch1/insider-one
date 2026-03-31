@@ -1,0 +1,35 @@
+package email
+
+import (
+	"context"
+	"insider-one/domain/notification/email"
+)
+
+type GetStatusByBatchIDQuery interface {
+	Execute(ctx context.Context, requests GetStatusByBatchIDRequest) (*GetStatusByBatchIDResponse, error)
+}
+
+type getStatusByBatchIDQuery struct {
+	EmailRepository email.Repository
+}
+
+func NewGetStatusByBatchIDQuery(emailRepository email.Repository) GetStatusByBatchIDQuery {
+	return &getStatusByBatchIDQuery{emailRepository}
+}
+
+func (g *getStatusByBatchIDQuery) Execute(ctx context.Context, requests GetStatusByBatchIDRequest) (*GetStatusByBatchIDResponse, error) {
+	getStatusByBatchID, err := g.EmailRepository.GetStatusByID(ctx, requests.IDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var response GetStatusByBatchIDResponse
+	for _, emailByStatus := range getStatusByBatchID {
+		response.Emails = append(response.Emails, GetEmailStatusByIDResponse{
+			EmailID: emailByStatus.ID,
+			Status:  emailByStatus.Status,
+		})
+	}
+
+	return &response, nil
+}

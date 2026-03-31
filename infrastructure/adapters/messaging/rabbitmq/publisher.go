@@ -1,0 +1,62 @@
+package rabbitmq
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+)
+
+type Publisher struct {
+	client *Client
+}
+
+func NewPublisher(client *Client) *Publisher {
+	return &Publisher{client: client}
+}
+
+type PublishOptions struct {
+	Exchange   string
+	RoutingKey string
+	Headers    amqp.Table
+	Persistent bool
+}
+
+func (p *Publisher) Publish(ctx context.Context, v any, opts PublishOptions) error {
+	body, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Errorf("publisher: marshal: %w", err)
+	}
+
+	ch, err := p.client.Channel()
+	if err != nil {
+		return fmt.Errorf("publisher: open channel: %w", err)
+	}
+	defer ch.Close()
+
+	deliveryMode := amqp.Transient
+	if opts.Persistent {
+		deliveryMode = amqp.Persistent
+	}
+
+	err = ch.PublishWithContext(
+		ctx,
+		opts.Exchange,
+		opts.RoutingKey,
+		false, false,
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: deliveryMode,
+			Timestamp:    time.Now(),
+			Headers:      opts.Headers,
+			Body:         body,
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("publisher: publish json: %w", err)
+	}
+	return nil
+}
