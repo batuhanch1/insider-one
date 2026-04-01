@@ -14,10 +14,10 @@ type CancelCommand interface {
 
 type cancelCommand struct {
 	PushRepository push.Repository
-	Publisher      *rabbitmq.Publisher
+	Publisher      rabbitmq.Publisher
 }
 
-func NewCancelCommand(pushRepository push.Repository, publisher *rabbitmq.Publisher) CancelCommand {
+func NewCancelCommand(pushRepository push.Repository, publisher rabbitmq.Publisher) CancelCommand {
 	return &cancelCommand{pushRepository, publisher}
 }
 

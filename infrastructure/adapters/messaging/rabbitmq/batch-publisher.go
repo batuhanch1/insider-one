@@ -12,12 +12,16 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type BatchPublisher struct {
+type BatchPublisher interface {
+	Publish(ctx context.Context, vList []any, opts BatchPublisherOptions) error
+}
+
+type batchPublisher struct {
 	channel *amqp.Channel
 }
 
-func NewBatchPublisher(channel *amqp.Channel) *BatchPublisher {
-	return &BatchPublisher{channel}
+func NewBatchPublisher(channel *amqp.Channel) BatchPublisher {
+	return &batchPublisher{channel}
 }
 
 type BatchPublisherOptions struct {
@@ -27,7 +31,7 @@ type BatchPublisherOptions struct {
 	Persistent bool
 }
 
-func (p *BatchPublisher) Publish(ctx context.Context, vList []any, opts BatchPublisherOptions) error {
+func (p *batchPublisher) Publish(ctx context.Context, vList []any, opts BatchPublisherOptions) error {
 	if len(vList) > 1000 {
 		return errors.New("maks len 1000")
 	}

@@ -14,10 +14,10 @@ type CreateCommand interface {
 
 type createCommand struct {
 	Repository email.Repository
-	Publisher  *rabbitmq.Publisher
+	Publisher  rabbitmq.Publisher
 }
 
-func NewCreateCommand(repository email.Repository, publisher *rabbitmq.Publisher) CreateCommand {
+func NewCreateCommand(repository email.Repository, publisher rabbitmq.Publisher) CreateCommand {
 	return &createCommand{repository, publisher}
 }
 

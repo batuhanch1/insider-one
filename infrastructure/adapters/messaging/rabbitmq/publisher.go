@@ -10,12 +10,16 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type Publisher struct {
+type Publisher interface {
+	Publish(ctx context.Context, v any, opts PublishOptions) error
+}
+
+type publisher struct {
 	client *Client
 }
 
-func NewPublisher(client *Client) *Publisher {
-	return &Publisher{client: client}
+func NewPublisher(client *Client) Publisher {
+	return &publisher{client: client}
 }
 
 type PublishOptions struct {
@@ -25,7 +29,7 @@ type PublishOptions struct {
 	Persistent bool
 }
 
-func (p *Publisher) Publish(ctx context.Context, v any, opts PublishOptions) error {
+func (p *publisher) Publish(ctx context.Context, v any, opts PublishOptions) error {
 	body, err := json.Marshal(v)
 	if err != nil {
 		err = fmt.Errorf("publisher: marshal: %w", err)

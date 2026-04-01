@@ -15,10 +15,10 @@ type ScheduleCommand interface {
 
 type scheduleCommand struct {
 	Repository sms.Repository
-	Publisher  *rabbitmq.Publisher
+	Publisher  rabbitmq.Publisher
 }
 
-func NewScheduleCommand(repository sms.Repository, publisher *rabbitmq.Publisher) ScheduleCommand {
+func NewScheduleCommand(repository sms.Repository, publisher rabbitmq.Publisher) ScheduleCommand {
 	return &scheduleCommand{repository, publisher}
 }
 

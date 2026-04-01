@@ -52,7 +52,7 @@ func emailScheduledJobCmdRun(cmd *cobra.Command, args []string) (err error) {
 	scheduleCommand := emailCommand.NewScheduleCommand(emailRepository, publisher)
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Username: cfg.Redis.User,
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,

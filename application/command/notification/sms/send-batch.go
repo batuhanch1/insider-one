@@ -15,10 +15,10 @@ type SendBatchCommand interface {
 	Execute(ctx context.Context, request SendBatchSmsRequest) error
 }
 type sendBatchCommand struct {
-	BatchPublisher *rabbitmq.BatchPublisher
+	BatchPublisher rabbitmq.BatchPublisher
 }
 
-func NewSendBatchCommand(batchPublisher *rabbitmq.BatchPublisher) SendBatchCommand {
+func NewSendBatchCommand(batchPublisher rabbitmq.BatchPublisher) SendBatchCommand {
 	return &sendBatchCommand{batchPublisher}
 }
 

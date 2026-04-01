@@ -15,10 +15,10 @@ type SendCommand interface {
 }
 
 type sendCommand struct {
-	Publisher *rabbitmq.Publisher
+	Publisher rabbitmq.Publisher
 }
 
-func NewSendCommand(publisher *rabbitmq.Publisher) SendCommand {
+func NewSendCommand(publisher rabbitmq.Publisher) SendCommand {
 	return &sendCommand{publisher}
 }
 

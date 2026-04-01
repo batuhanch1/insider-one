@@ -171,18 +171,18 @@ All components share the same binary and are selected via a subcommand.
 
 # Create consumers (persist incoming notifications)
 ./insider-one create-email-consumer --env qa --priority HIGH
-./insider-one create-push-consumer  --env qa --priority "*"
+./insider-one create-push-consumer  --env qa --priority LOW
 ./insider-one create-sms-consumer   --env qa --priority MEDIUM
 
 # Delivery consumers (call external providers)
-./insider-one email-created-consumer --env qa --priority "*"
-./insider-one push-created-consumer  --env qa --priority "*"
-./insider-one sms-created-consumer   --env qa --priority "*"
+./insider-one email-created-consumer --env qa --priority HIGH
+./insider-one push-created-consumer  --env qa --priority MEDIUM
+./insider-one sms-created-consumer   --env qa --priority LOW
 
 # Cancellation consumers
-./insider-one cancel-email-consumer --env qa --priority "*"
-./insider-one cancel-push-consumer  --env qa --priority "*"
-./insider-one cancel-sms-consumer   --env qa --priority "*"
+./insider-one cancel-email-consumer --env qa
+./insider-one cancel-push-consumer  --env qa
+./insider-one cancel-sms-consumer   --env qa
 
 # Scheduled jobs (promote SCHEDULED → PENDING)
 ./insider-one email-scheduled-job --env qa
@@ -415,3 +415,12 @@ Same as email, replacing `/api/v1/email/` with `/api/v1/push/`.
 | `REDIS.DB` | Redis database index |
 | `REDIS.USER` | Redis user (optional) |
 | `REDIS.PASSWORD` | Redis password (optional) |
+
+
+## Run test with single command
+```bash
+go test ./...              # tüm testler
+go test -v ./...           # verbose (her test adı görünür)
+go test -cover ./...       # coverage yüzdesi
+go test -race ./...        # race condition tespiti
+```
