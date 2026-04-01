@@ -38,13 +38,13 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	client, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer rabbitMqClient.Close()
 
-	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_CancelEmail,
 		QueueName:    rabbitmq2.Queue_CancelEmail,
 		RoutingKey:   rabbitmq2.RoutingKey_Asterisk,
@@ -56,9 +56,9 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(client)
+	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
 	emailRepository := emailPersistence.NewRepository(pool)
-	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, *publisher)
+	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, publisher)
 	createEmailHandler := handler.NewCreateEmailHandler(emailCreateCommand)
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
 
@@ -70,7 +70,7 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(client, rabbitmq2.Queue_CancelEmail, createEmailHandler.HandleMessage, prometheusWrapper, cancelEmailConsumerOptions)
+	consumer := rabbitmq2.NewConsumer(rabbitMqClient, rabbitmq2.Queue_CancelEmail, createEmailHandler.HandleMessage, prometheusWrapper, cancelEmailConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

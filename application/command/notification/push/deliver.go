@@ -16,10 +16,10 @@ type DeliverCommand interface {
 type deliverCommand struct {
 	Repository   push.Repository
 	PushProvider provider.PushProvider
-	Publisher    rabbitmq.Publisher
+	Publisher    *rabbitmq.Publisher
 }
 
-func NewDeliverCommand(repository push.Repository, PushProvider provider.PushProvider, publisher rabbitmq.Publisher) DeliverCommand {
+func NewDeliverCommand(repository push.Repository, PushProvider provider.PushProvider, publisher *rabbitmq.Publisher) DeliverCommand {
 	return &deliverCommand{repository, PushProvider, publisher}
 }
 

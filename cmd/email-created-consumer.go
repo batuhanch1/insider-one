@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	emailCommand "insider-one/application/command/notification/email"
+	"insider-one/infrastructure/adapters/client"
+	emailProvider "insider-one/infrastructure/adapters/client/email-provider"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
@@ -37,16 +39,16 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	client, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer rabbitMqClient.Close()
 
 	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_EmailCreated_Generic, priority)
 	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_EmailCreated,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
@@ -57,11 +59,13 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	defer pool.Close()
-	publisher := rabbitmq2.NewPublisher(client)
 
+	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	httpClient := client.NewClient()
 	emailRepository := emailPersistence.NewRepository(pool)
-	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, *publisher)
-	createEmailHandler := handler.NewCreateEmailHandler(emailCreateCommand)
+	emailProvider := emailProvider.NewEmailProvider(httpClient, cfg.EmailProvider)
+	emailDeliverCommand := emailCommand.NewDeliverCommand(emailRepository, emailProvider, publisher)
+	emailCreatedHandler := handler.NewEmailCreatedHandler(emailDeliverCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
 
@@ -73,7 +77,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(client, genericQueueName, createEmailHandler.HandleMessage, prometheusWrapper, emailCreatedConsumerOptions)
+	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, emailCreatedHandler.HandleMessage, prometheusWrapper, emailCreatedConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

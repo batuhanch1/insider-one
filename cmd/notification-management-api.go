@@ -81,7 +81,7 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	emailRepository := emailPersistence.NewRepository(pool)
 
 	sendEmailCommand := emailCommand.NewSendCommand(publisher)
-	cancelEmailCommand := emailCommand.NewCancelCommand(emailRepository, *publisher)
+	cancelEmailCommand := emailCommand.NewCancelCommand(emailRepository, publisher)
 	sendBatchEmailCommand := emailCommand.NewSendBatchCommand(batchPublisher)
 
 	getAllEmailQuery := emailQuery.NewGetAllQuery(emailRepository)
@@ -92,7 +92,7 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	smsRepository := smsPersistence.NewRepository(pool)
 
 	sendSmsCommand := smsCommand.NewSendCommand(publisher)
-	cancelSmsCommand := smsCommand.NewCancelCommand(smsRepository, *publisher)
+	cancelSmsCommand := smsCommand.NewCancelCommand(smsRepository, publisher)
 	sendBatchSmsCommand := smsCommand.NewSendBatchCommand(batchPublisher)
 
 	getAllSmsQuery := smsQuery.NewGetAllQuery(smsRepository)
@@ -103,7 +103,7 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	pushRepository := pushPersistence.NewRepository(pool)
 
 	sendPushCommand := pushCommand.NewSendCommand(publisher)
-	cancelPushCommand := pushCommand.NewCancelCommand(pushRepository, *publisher)
+	cancelPushCommand := pushCommand.NewCancelCommand(pushRepository, publisher)
 	sendBatchPushCommand := pushCommand.NewSendBatchCommand(batchPublisher)
 
 	getAllPushQuery := pushQuery.NewGetAllQuery(pushRepository)

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	Path_Deliver = "/push/deliver"
+	Path_Deliver = ""
 )
 
 type PushProvider interface {

@@ -37,16 +37,16 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	client, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer rabbitMqClient.Close()
 
 	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_CreatePush_Generic, priority)
 	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_CreatePush,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
@@ -58,9 +58,9 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(client)
+	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
 	pushRepository := pushPersistence.NewRepository(pool)
-	pushCreateCommand := pushCommand.NewCreateCommand(pushRepository, *publisher)
+	pushCreateCommand := pushCommand.NewCreateCommand(pushRepository, publisher)
 	createpushHandler := handler.NewCreatePushHandler(pushCreateCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
@@ -73,7 +73,7 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(client, genericQueueName, createpushHandler.HandleMessage, prometheusWrapper, createPushConsumerOptions)
+	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, createpushHandler.HandleMessage, prometheusWrapper, createPushConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

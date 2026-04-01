@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	pushCommand "insider-one/application/command/notification/push"
+	"insider-one/infrastructure/adapters/client"
+	pushProvider "insider-one/infrastructure/adapters/client/push-provider"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
@@ -37,16 +39,16 @@ func pushCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	client, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer rabbitMqClient.Close()
 
 	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_PushCreated_Generic, priority)
 	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_PushCreated,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
@@ -58,10 +60,12 @@ func pushCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(client)
+	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	httpClient := client.NewClient()
 	pushRepository := pushPersistence.NewRepository(pool)
-	pushCreateCommand := pushCommand.NewCreateCommand(pushRepository, *publisher)
-	createpushHandler := handler.NewCreatePushHandler(pushCreateCommand)
+	pushProvider := pushProvider.NewPushProvider(httpClient, cfg.PushProvider)
+	pushDeliverCommand := pushCommand.NewDeliverCommand(pushRepository, pushProvider, publisher)
+	pushCreatedHandler := handler.NewPushCreatedHandler(pushDeliverCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
 
@@ -73,7 +77,7 @@ func pushCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(client, genericQueueName, createpushHandler.HandleMessage, prometheusWrapper, pushCreatedConsumerOptions)
+	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, pushCreatedHandler.HandleMessage, prometheusWrapper, pushCreatedConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

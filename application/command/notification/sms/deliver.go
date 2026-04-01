@@ -15,18 +15,18 @@ type DeliverCommand interface {
 
 type deliverCommand struct {
 	Repository  sms.Repository
-	smsProvider provider.SmsProvider
-	Publisher   rabbitmq.Publisher
+	SmsProvider provider.SmsProvider
+	Publisher   *rabbitmq.Publisher
 }
 
-func NewDeliverCommand(repository sms.Repository, smsProvider provider.SmsProvider, publisher rabbitmq.Publisher) DeliverCommand {
+func NewDeliverCommand(repository sms.Repository, smsProvider provider.SmsProvider, publisher *rabbitmq.Publisher) DeliverCommand {
 	return &deliverCommand{repository, smsProvider, publisher}
 }
 
 func (d *deliverCommand) Execute(ctx context.Context, event sms.SmsCreatedEvent) error {
 	deliverRequest := provider.NewDeliverRequest(event.Sender, event.PhoneNumber, event.Content)
 
-	deliverResponse, err := d.smsProvider.Deliver(ctx, deliverRequest)
+	deliverResponse, err := d.SmsProvider.Deliver(ctx, deliverRequest)
 	if err != nil {
 		err = fmt.Errorf("error delivering sms via provider in deliver command: %w", err)
 		logging.Error(ctx, err)

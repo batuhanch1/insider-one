@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	Path_Deliver = "/email/deliver"
+	Path_Deliver = ""
 )
 
 type EmailProvider interface {

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	SmsCommand "insider-one/application/command/notification/sms"
+	smsCommand "insider-one/application/command/notification/sms"
+	"insider-one/infrastructure/adapters/client"
+	smsProvider "insider-one/infrastructure/adapters/client/sms-provider"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
-	SmsPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/sms"
+	smsPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/sms"
 	"insider-one/infrastructure/config"
 	"insider-one/infrastructure/logging"
 	prometheusWrapper "insider-one/infrastructure/prometheus"
@@ -37,16 +39,16 @@ func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	client, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer rabbitMqClient.Close()
 
 	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_SmsCreated_Generic, priority)
 	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_SmsCreated,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
@@ -58,10 +60,12 @@ func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(client)
-	smsRepository := SmsPersistence.NewRepository(pool)
-	smsCreateCommand := SmsCommand.NewCreateCommand(smsRepository, *publisher)
-	createSmsHandler := handler.NewCreateSmsHandler(smsCreateCommand)
+	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	httpClient := client.NewClient()
+	smsRepository := smsPersistence.NewRepository(pool)
+	smsProvider := smsProvider.NewSmsProvider(httpClient, cfg.SmsProvider)
+	smsDeliverCommand := smsCommand.NewDeliverCommand(smsRepository, smsProvider, publisher)
+	smsCreatedHandler := handler.NewSmsCreatedHandler(smsDeliverCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
 
@@ -73,7 +77,7 @@ func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(client, genericQueueName, createSmsHandler.HandleMessage, prometheusWrapper, smsCreatedConsumerOptions)
+	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, smsCreatedHandler.HandleMessage, prometheusWrapper, smsCreatedConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

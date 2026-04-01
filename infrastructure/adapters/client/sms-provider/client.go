@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	Path_Deliver = "/sms/deliver"
+	Path_Deliver = ""
 )
 
 type SmsProvider interface {

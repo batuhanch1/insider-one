@@ -15,7 +15,7 @@ type SendCommand interface {
 }
 
 type sendCommand struct {
-	publisher *rabbitmq2.Publisher
+	Publisher *rabbitmq2.Publisher
 }
 
 func NewSendCommand(publisher *rabbitmq2.Publisher) SendCommand {
@@ -37,7 +37,7 @@ func (s *sendCommand) Execute(ctx context.Context, request SendPushRequest) erro
 		pushEvent.ScheduledAt = request.ScheduledAt.Unix()
 	}
 
-	err := s.publisher.Publish(ctx, pushEvent, rabbitmq2.PublishOptions{
+	err := s.Publisher.Publish(ctx, pushEvent, rabbitmq2.PublishOptions{
 		Exchange:   rabbitmq2.Exchange_CreatePush,
 		RoutingKey: request.Priority,
 		Persistent: true,

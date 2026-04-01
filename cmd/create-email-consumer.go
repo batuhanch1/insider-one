@@ -37,16 +37,16 @@ func createEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	client, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
+	defer rabbitMqClient.Close()
 
 	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_CreateEmail_Generic, priority)
 	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_CreateEmail,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
@@ -57,10 +57,10 @@ func createEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	defer pool.Close()
-	publisher := rabbitmq2.NewPublisher(client)
+	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
 
 	emailRepository := emailPersistence.NewRepository(pool)
-	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, *publisher)
+	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, publisher)
 	createEmailHandler := handler.NewCreateEmailHandler(emailCreateCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
@@ -73,7 +73,7 @@ func createEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(client, genericQueueName, createEmailHandler.HandleMessage, prometheusWrapper, createEmailConsumerOptions)
+	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, createEmailHandler.HandleMessage, prometheusWrapper, createEmailConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
