@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"insider-one/infrastructure/adapters/client"
 	"insider-one/infrastructure/config"
+	"insider-one/infrastructure/logging"
 	"io"
 	"net/http"
 )
@@ -31,13 +32,17 @@ func NewPushProvider(client client.HttpClient, config config.PushProviderConfig)
 func (s *pushProvider) Deliver(ctx context.Context, request *DeliverRequest) (*DeliverResponse, error) {
 	bodyBytes, err := json.Marshal(request)
 	if err != nil {
-		return nil, fmt.Errorf("PushProvider Deliver Marshal error %w", err)
+		err = fmt.Errorf("PushProvider Deliver Marshal error %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	url := fmt.Sprintf("%s%s", s.config.Host, Path_Deliver)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		return nil, fmt.Errorf("PushProvider Deliver NewRequest error %w", err)
+		err = fmt.Errorf("PushProvider Deliver NewRequest error %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -45,22 +50,30 @@ func (s *pushProvider) Deliver(ctx context.Context, request *DeliverRequest) (*D
 
 	var resp *http.Response
 	if resp, err = s.client.Do(ctx, req); err != nil {
-		return nil, fmt.Errorf("PushProvider Deliver Do error %w", err)
+		err = fmt.Errorf("PushProvider Deliver Do error %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("bad response: %d", resp.StatusCode)
+		err = fmt.Errorf("bad response: %d", resp.StatusCode)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	var bodyByte []byte
 	if bodyByte, err = io.ReadAll(resp.Body); err != nil {
-		return nil, fmt.Errorf("PushProvider Deliver ReadAll error %w", err)
+		err = fmt.Errorf("PushProvider Deliver ReadAll error %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	var response DeliverResponse
 	if err = json.Unmarshal(bodyByte, &response); err != nil {
-		return nil, fmt.Errorf("PushProvider Deliver Unmarshal error %w", err)
+		err = fmt.Errorf("PushProvider Deliver Unmarshal error %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 	return &response, nil
 }

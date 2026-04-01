@@ -2,7 +2,9 @@ package sms
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification/sms"
+	"insider-one/infrastructure/logging"
 )
 
 type GetSmsStatusByIDQuery interface {
@@ -21,6 +23,8 @@ func (g *getSmsStatusByIDQuery) Execute(ctx context.Context, request GetSmsStatu
 	var ids = []uint64{request.ID}
 	getStatusByID, err := g.smsRepository.GetStatusByID(ctx, ids)
 	if err != nil {
+		err = fmt.Errorf("error get sms status by id in getSmsStatusByIDQuery: %w", err)
+		logging.Error(ctx, err)
 		return nil, err
 	}
 

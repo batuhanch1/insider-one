@@ -9,7 +9,7 @@ type SendEmailRequest struct {
 	Subject     string     `json:"subject" binding:"required,min=1,max=150"`
 	Content     string     `json:"content" binding:"required,min=1,max=10000"`
 	Type        string     `json:"type" binding:"required,min=1,max=150"`
-	Priority    string     `json:"priority" binding:"required,oneof=low medium high"`
+	Priority    string     `json:"priority" binding:"required,oneof=LOW MEDIUM HIGH"`
 }
 
 type SendBatchEmailRequest struct {
@@ -23,9 +23,9 @@ type SendBatchEmail struct {
 	Subject     string     `json:"subject" binding:"required,min=1,max=150"`
 	Content     string     `json:"content" binding:"required,min=1,max=10000"`
 	Type        string     `json:"type" binding:"required,min=1,max=150"`
-	Priority    string     `json:"priority" binding:"required,oneof=low medium high"`
+	Priority    string     `json:"priority" binding:"required,oneof=LOW MEDIUM HIGH"`
 }
 
 type CancelEmailRequest struct {
-	Status string `form:"status" binding:"required,oneof=PENDING SENT"`
+	Status string `form:"status" binding:"required,oneof=PENDING"`
 }

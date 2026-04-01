@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"insider-one/domain/notification/push"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 )
 
 type CancelCommand interface {
@@ -23,7 +24,9 @@ func NewCancelCommand(pushRepository push.Repository, publisher rabbitmq2.Publis
 func (s *cancelCommand) Execute(ctx context.Context, request CancelPushRequest) error {
 	pushIds, err := s.PushRepository.GetByStatus(ctx, request.Status)
 	if err != nil {
-		return fmt.Errorf("cancelPendingCommand.pushRepository.GetByStatus: %w", err)
+		err = fmt.Errorf("error get push by status in cancel command: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 
 	for _, pushId := range pushIds {
@@ -34,6 +37,8 @@ func (s *cancelCommand) Execute(ctx context.Context, request CancelPushRequest) 
 			Persistent: true,
 		})
 		if err != nil {
+			err = fmt.Errorf("error publishing cancel push event in cancel command : %w", err)
+			logging.Error(ctx, err)
 			return err
 		}
 	}

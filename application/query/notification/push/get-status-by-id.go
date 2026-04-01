@@ -2,7 +2,9 @@ package push
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification/push"
+	"insider-one/infrastructure/logging"
 )
 
 type GetPushStatusByIDQuery interface {
@@ -21,6 +23,8 @@ func (g *getPushStatusByIDQuery) Execute(ctx context.Context, request GetPushSta
 	var ids = []uint64{request.ID}
 	getStatusByID, err := g.pushRepository.GetStatusByID(ctx, ids)
 	if err != nil {
+		err = fmt.Errorf("error get push status by id in getPushStatusByIDQuery: %w", err)
+		logging.Error(ctx, err)
 		return nil, err
 	}
 

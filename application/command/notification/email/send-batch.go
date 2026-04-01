@@ -2,9 +2,11 @@ package email
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification"
 	"insider-one/domain/notification/email"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 
 	"github.com/cespare/xxhash/v2"
 )
@@ -47,12 +49,18 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchEm
 		}
 	}
 	if err := s.publishBatch(ctx, highEventList, rabbitmq2.RoutingKey_High); err != nil {
+		err = fmt.Errorf("error publishing create high email event in send batch command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 	if err := s.publishBatch(ctx, mediumEventList, rabbitmq2.RoutingKey_Medium); err != nil {
+		err = fmt.Errorf("error publishing create medium email event in send batch command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 	if err := s.publishBatch(ctx, lowEventList, rabbitmq2.RoutingKey_Low); err != nil {
+		err = fmt.Errorf("error publishing create low email event in send batch command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 

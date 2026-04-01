@@ -21,6 +21,13 @@ func NewController(pool *pgxpool.Pool, rabbitMqClient *rabbitmq.Client) Controll
 	return &controller{pool, rabbitMqClient}
 }
 
+// HealthCheck godoc
+// @Summary      Health check
+// @Description  Returns the health status of the service including DB and RabbitMQ connectivity
+// @Tags         system
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /health [get]
 func (c *controller) HealthCheck(g *gin.Context) {
 	ctx := g.Copy()
 

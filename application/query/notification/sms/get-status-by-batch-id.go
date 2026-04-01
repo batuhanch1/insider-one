@@ -2,7 +2,9 @@ package sms
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification/sms"
+	"insider-one/infrastructure/logging"
 )
 
 type GetStatusByBatchIDQuery interface {
@@ -20,6 +22,8 @@ func NewGetStatusByBatchIDQuery(smsRepository sms.Repository) GetStatusByBatchID
 func (g *getStatusByBatchIDQuery) Execute(ctx context.Context, requests GetStatusByBatchIDRequest) (*GetStatusByBatchIDResponse, error) {
 	getStatusByBatchID, err := g.smsRepository.GetStatusByID(ctx, requests.IDs)
 	if err != nil {
+		err = fmt.Errorf("error get sms status by ids in getStatusByBatchIDQuery: %w", err)
+		logging.Error(ctx, err)
 		return nil, err
 	}
 

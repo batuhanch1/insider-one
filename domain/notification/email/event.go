@@ -28,6 +28,3 @@ type EmailCreatedEvent struct {
 	Status         string `json:"status,omitempty"`
 	Type           string `json:"type,omitempty"`
 }
-
-type EmailDeliveredEvent struct {
-}

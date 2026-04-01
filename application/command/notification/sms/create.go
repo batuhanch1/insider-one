@@ -2,9 +2,11 @@ package sms
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification"
 	"insider-one/domain/notification/sms"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 	"time"
 )
 
@@ -34,9 +36,12 @@ func (c *createCommand) Execute(ctx context.Context, event sms.CreateSmsEvent) e
 	}
 	err := c.Repository.Save(ctx, s)
 	if err != nil {
+		err = fmt.Errorf("error save sms in create command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 	if s.IsScheduled() {
+		logging.Info(ctx, "scheduled push ignored.")
 		return nil
 	}
 
@@ -54,6 +59,11 @@ func (c *createCommand) Execute(ctx context.Context, event sms.CreateSmsEvent) e
 		RoutingKey: event.Priority,
 		Persistent: true,
 	})
+	if err != nil {
+		err = fmt.Errorf("error publishing sms created event in create command: %w", err)
+		logging.Error(ctx, err)
+	}
+
 	return err
 
 }

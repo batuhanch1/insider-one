@@ -1,0 +1,994 @@
+basePath: /
+definitions:
+  email.Email:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: integer
+      deleted_at:
+        type: integer
+      from:
+        type: string
+      id:
+        type: integer
+      idempotency_key:
+        type: integer
+      message_id:
+        type: string
+      scheduled_at:
+        type: integer
+      sent_at:
+        type: integer
+      status:
+        type: string
+      subject:
+        type: string
+      to:
+        type: string
+      type:
+        type: string
+    type: object
+  email.GetAllEmailResponse:
+    properties:
+      emails:
+        items:
+          $ref: '#/definitions/email.Email'
+        type: array
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        maximum: 50
+        minimum: 0
+        type: integer
+      total_count:
+        type: integer
+    required:
+    - page
+    - page_size
+    type: object
+  email.GetEmailStatusByIDResponse:
+    properties:
+      email_id:
+        type: integer
+      status:
+        type: string
+    type: object
+  email.GetStatusByBatchIDRequest:
+    properties:
+      ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  email.GetStatusByBatchIDResponse:
+    properties:
+      emails:
+        items:
+          $ref: '#/definitions/email.GetEmailStatusByIDResponse'
+        type: array
+    type: object
+  email.SendBatchEmail:
+    properties:
+      content:
+        maxLength: 10000
+        minLength: 1
+        type: string
+      from:
+        maxLength: 255
+        type: string
+      priority:
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        type: string
+      scheduled_at:
+        type: string
+      subject:
+        maxLength: 150
+        minLength: 1
+        type: string
+      to:
+        maxLength: 255
+        type: string
+      type:
+        maxLength: 150
+        minLength: 1
+        type: string
+    required:
+    - content
+    - from
+    - priority
+    - subject
+    - to
+    - type
+    type: object
+  email.SendBatchEmailRequest:
+    properties:
+      emails:
+        items:
+          $ref: '#/definitions/email.SendBatchEmail'
+        maxItems: 1000
+        minItems: 1
+        type: array
+    type: object
+  email.SendEmailRequest:
+    properties:
+      content:
+        maxLength: 10000
+        minLength: 1
+        type: string
+      from:
+        maxLength: 255
+        type: string
+      priority:
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        type: string
+      scheduled_at:
+        type: string
+      subject:
+        maxLength: 150
+        minLength: 1
+        type: string
+      to:
+        maxLength: 255
+        type: string
+      type:
+        maxLength: 150
+        minLength: 1
+        type: string
+    required:
+    - content
+    - from
+    - priority
+    - subject
+    - to
+    - type
+    type: object
+  error_handling.Errors:
+    properties:
+      CorrelationID:
+        type: string
+      Err: {}
+      ErrorType:
+        type: string
+      Message:
+        type: string
+      Parameter:
+        type: string
+      StackTrace:
+        type: string
+      StatusCode:
+        type: integer
+    type: object
+  push.GetAllPushResponse:
+    properties:
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        maximum: 50
+        minimum: 0
+        type: integer
+      pushes:
+        items:
+          $ref: '#/definitions/push.Push'
+        type: array
+      total_count:
+        type: integer
+    required:
+    - page
+    - page_size
+    type: object
+  push.GetPushStatusByIDResponse:
+    properties:
+      push_id:
+        type: integer
+      status:
+        type: string
+    type: object
+  push.GetStatusByBatchIDRequest:
+    properties:
+      ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  push.GetStatusByBatchIDResponse:
+    properties:
+      pushes:
+        items:
+          $ref: '#/definitions/push.GetPushStatusByIDResponse'
+        type: array
+    type: object
+  push.Push:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: integer
+      deleted_at:
+        type: integer
+      id:
+        type: integer
+      idempotency_key:
+        type: integer
+      phone_number:
+        type: string
+      scheduled_at:
+        type: integer
+      sender:
+        type: string
+      sent_at:
+        type: integer
+      status:
+        type: string
+      type:
+        type: string
+    type: object
+  push.SendBatchPush:
+    properties:
+      content:
+        maxLength: 1000
+        minLength: 1
+        type: string
+      phone_number:
+        type: string
+      priority:
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        type: string
+      scheduled_at:
+        type: string
+      sender:
+        maxLength: 100
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - phone_number
+    - priority
+    - sender
+    - type
+    type: object
+  push.SendBatchPushRequest:
+    properties:
+      pushes:
+        items:
+          $ref: '#/definitions/push.SendBatchPush'
+        maxItems: 1000
+        minItems: 1
+        type: array
+    type: object
+  push.SendPushRequest:
+    properties:
+      content:
+        maxLength: 1000
+        minLength: 1
+        type: string
+      phone_number:
+        type: string
+      priority:
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        type: string
+      scheduled_at:
+        type: string
+      sender:
+        maxLength: 100
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - phone_number
+    - priority
+    - sender
+    - type
+    type: object
+  sms.GetAllSmsResponse:
+    properties:
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        maximum: 50
+        minimum: 0
+        type: integer
+      smsList:
+        items:
+          $ref: '#/definitions/sms.Sms'
+        type: array
+      total_count:
+        type: integer
+    required:
+    - page
+    - page_size
+    type: object
+  sms.GetSmsStatusByIDResponse:
+    properties:
+      sms_id:
+        type: integer
+      status:
+        type: string
+    type: object
+  sms.GetStatusByBatchIDRequest:
+    properties:
+      ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  sms.GetStatusByBatchIDResponse:
+    properties:
+      smsList:
+        items:
+          $ref: '#/definitions/sms.GetSmsStatusByIDResponse'
+        type: array
+    type: object
+  sms.SendBatchSms:
+    properties:
+      content:
+        maxLength: 160
+        minLength: 1
+        type: string
+      phone_number:
+        type: string
+      priority:
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        type: string
+      scheduled_at:
+        type: string
+      sender:
+        maxLength: 11
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - phone_number
+    - priority
+    - sender
+    - type
+    type: object
+  sms.SendBatchSmsRequest:
+    properties:
+      sms:
+        items:
+          $ref: '#/definitions/sms.SendBatchSms'
+        maxItems: 1000
+        minItems: 1
+        type: array
+    type: object
+  sms.SendSmsRequest:
+    properties:
+      content:
+        maxLength: 160
+        minLength: 1
+        type: string
+      phone_number:
+        type: string
+      priority:
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        type: string
+      scheduled_at:
+        type: string
+      sender:
+        maxLength: 11
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - phone_number
+    - priority
+    - sender
+    - type
+    type: object
+  sms.Sms:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: integer
+      deleted_at:
+        type: integer
+      id:
+        type: integer
+      idempotency_key:
+        type: integer
+      phone_number:
+        type: string
+      scheduled_at:
+        type: integer
+      sender:
+        type: string
+      sent_at:
+        type: integer
+      status:
+        type: string
+      type:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API for managing email, SMS, and push notifications
+  title: Notification Management API
+  version: "1.0"
+paths:
+  /api/v1/email/:
+    get:
+      description: List email notifications with optional date and status filters
+      parameters:
+      - description: Status filter
+        enum:
+        - PENDING
+        - SENT
+        in: query
+        name: status
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        minimum: 1
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        maximum: 50
+        minimum: 0
+        name: page_size
+        required: true
+        type: integer
+      - description: Start date (RFC3339)
+        in: query
+        name: create_date
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/email.GetAllEmailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: List emails
+      tags:
+      - email
+    post:
+      consumes:
+      - application/json
+      description: Queue a single email notification
+      parameters:
+      - description: Send Email Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/email.SendEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Send email
+      tags:
+      - email
+  /api/v1/email/batch:
+    post:
+      consumes:
+      - application/json
+      description: Queue multiple email notifications (max 1000)
+      parameters:
+      - description: Send Batch Email Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/email.SendBatchEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Send batch emails
+      tags:
+      - email
+  /api/v1/email/cancel:
+    put:
+      description: Cancel email notifications matching the given status
+      parameters:
+      - description: Status to cancel
+        enum:
+        - PENDING
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel emails
+      tags:
+      - email
+  /api/v1/email/status:
+    get:
+      description: Get the status of a single email notification
+      parameters:
+      - description: Email ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/email.GetEmailStatusByIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Get email status by ID
+      tags:
+      - email
+  /api/v1/email/status/batch:
+    post:
+      consumes:
+      - application/json
+      description: Get the status of multiple email notifications
+      parameters:
+      - description: Batch Status Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/email.GetStatusByBatchIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/email.GetStatusByBatchIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Get email statuses by IDs
+      tags:
+      - email
+  /api/v1/push/:
+    get:
+      description: List push notifications with optional date and status filters
+      parameters:
+      - description: Status filter
+        enum:
+        - PENDING
+        - SENT
+        in: query
+        name: status
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        minimum: 1
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        maximum: 50
+        minimum: 0
+        name: page_size
+        required: true
+        type: integer
+      - description: Start date (RFC3339)
+        in: query
+        name: create_date
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/push.GetAllPushResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: List push notifications
+      tags:
+      - push
+    post:
+      consumes:
+      - application/json
+      description: Queue a single push notification
+      parameters:
+      - description: Send Push Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.SendPushRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Send push notification
+      tags:
+      - push
+  /api/v1/push/batch:
+    post:
+      consumes:
+      - application/json
+      description: Queue multiple push notifications (max 1000)
+      parameters:
+      - description: Send Batch Push Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.SendBatchPushRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Send batch push notifications
+      tags:
+      - push
+  /api/v1/push/cancel:
+    put:
+      description: Cancel push notifications matching the given status
+      parameters:
+      - description: Status to cancel
+        enum:
+        - PENDING
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel push notifications
+      tags:
+      - push
+  /api/v1/push/status:
+    get:
+      description: Get the status of a single push notification
+      parameters:
+      - description: Push ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/push.GetPushStatusByIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Get push notification status by ID
+      tags:
+      - push
+  /api/v1/push/status/batch:
+    post:
+      consumes:
+      - application/json
+      description: Get the status of multiple push notifications
+      parameters:
+      - description: Batch Status Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.GetStatusByBatchIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/push.GetStatusByBatchIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Get push notification statuses by IDs
+      tags:
+      - push
+  /api/v1/sms/:
+    get:
+      description: List SMS notifications with optional date and status filters
+      parameters:
+      - description: Status filter
+        enum:
+        - PENDING
+        - SENT
+        in: query
+        name: status
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        minimum: 1
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        maximum: 50
+        minimum: 0
+        name: page_size
+        required: true
+        type: integer
+      - description: Start date (RFC3339)
+        in: query
+        name: create_date
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sms.GetAllSmsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: List SMS
+      tags:
+      - sms
+    post:
+      consumes:
+      - application/json
+      description: Queue a single SMS notification
+      parameters:
+      - description: Send SMS Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/sms.SendSmsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Send SMS
+      tags:
+      - sms
+  /api/v1/sms/batch:
+    post:
+      consumes:
+      - application/json
+      description: Queue multiple SMS notifications (max 1000)
+      parameters:
+      - description: Send Batch SMS Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/sms.SendBatchSmsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Send batch SMS
+      tags:
+      - sms
+  /api/v1/sms/cancel:
+    put:
+      description: Cancel SMS notifications matching the given status
+      parameters:
+      - description: Status to cancel
+        enum:
+        - PENDING
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel SMS
+      tags:
+      - sms
+  /api/v1/sms/status:
+    get:
+      description: Get the status of a single SMS notification
+      parameters:
+      - description: SMS ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sms.GetSmsStatusByIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Get SMS status by ID
+      tags:
+      - sms
+  /api/v1/sms/status/batch:
+    post:
+      consumes:
+      - application/json
+      description: Get the status of multiple SMS notifications
+      parameters:
+      - description: Batch Status Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/sms.GetStatusByBatchIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sms.GetStatusByBatchIDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error_handling.Errors'
+      security:
+      - ApiKeyAuth: []
+      summary: Get SMS statuses by IDs
+      tags:
+      - sms
+  /health:
+    get:
+      description: Returns the health status of the service including DB and RabbitMQ
+        connectivity
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - system
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

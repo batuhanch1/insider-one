@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"insider-one/infrastructure/logging"
 	prometheus2 "insider-one/infrastructure/prometheus"
-	"log/slog"
 	"sync"
 	"time"
 
@@ -61,9 +61,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 			if ctx.Err() != nil {
 				return nil
 			}
-			slog.Error("consumer stopped unexpectedly, retrying",
-				"queue", c.queueName, "error", err,
-			)
+			logging.Error(ctx, fmt.Errorf("consumer stopped unexpectedly, retrying. queue :%s, err: %w", c.queueName, err))
 			select {
 			case <-c.client.reconnectC:
 			case <-time.After(5 * time.Second):
@@ -75,23 +73,31 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) consume(ctx context.Context, limiter *rate.Limiter) error {
-	ch, err := c.client.Channel()
+	ch, err := c.client.Channel(ctx)
 	if err != nil {
-		return fmt.Errorf("open channel: %w", err)
+		err = fmt.Errorf("open channel: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	defer ch.Close()
 
 	if c.opts.PrefetchCount < c.opts.WorkerCount {
-		return errors.New("prefetch count must be >= worker count")
+		err = errors.New("prefetch count must be >= worker count")
+		logging.Error(ctx, err)
+		return err
 	}
 
-	if err := ch.Qos(c.opts.PrefetchCount, 0, false); err != nil {
-		return fmt.Errorf("set qos: %w", err)
+	if err = ch.Qos(c.opts.PrefetchCount, 0, false); err != nil {
+		err = fmt.Errorf("set qos: %w, queueName : %s", err, c.queueName)
+		logging.Error(ctx, err)
+		return err
 	}
 
 	msgs, err := ch.Consume(c.queueName, "", false, false, false, false, nil)
 	if err != nil {
-		return fmt.Errorf("start consume: %w", err)
+		err = fmt.Errorf("start consume: %w, queueName : %s", err, c.queueName)
+		logging.Error(ctx, err)
+		return err
 	}
 
 	jobs := make(chan amqp.Delivery, c.opts.WorkerCount)
@@ -117,7 +123,7 @@ func (c *Consumer) consume(ctx context.Context, limiter *rate.Limiter) error {
 				if !ok {
 					return
 				}
-				if err := limiter.Wait(ctx); err != nil {
+				if err = limiter.Wait(ctx); err != nil {
 					msg.Nack(false, true)
 					return
 				}
@@ -142,6 +148,7 @@ func (c *Consumer) processMessage(ctx context.Context, ch *amqp.Channel, msg amq
 			Observe(time.Since(start).Seconds())
 	}()
 
+	logging.ReadMessageFromQueue(ctx, msg.Body, c.queueName, msg.RoutingKey)
 	err := c.handler(ctx, msg)
 	if err == nil {
 		c.PrometheusWrapper.ConsumerMessagesTotal.WithLabelValues(c.queueName, "success").Inc()
@@ -150,15 +157,11 @@ func (c *Consumer) processMessage(ctx context.Context, ch *amqp.Channel, msg amq
 	}
 	c.PrometheusWrapper.ConsumerMessagesTotal.WithLabelValues(c.queueName, "failed").Inc()
 
-	slog.Error("message handler failed",
-		"worker", workerID,
-		"queue", c.queueName,
-		"error", err,
-	)
-	retryOrDLQ(ch, msg, c.queueName, c.opts.MaxRetry)
+	logging.Error(ctx, fmt.Errorf("message handler failed. worker: %v, queue: %s, error: %w", workerID, c.queueName, err))
+	retryOrDLQ(ctx, ch, msg, c.queueName, c.opts.MaxRetry)
 }
 
-func retryOrDLQ(ch *amqp.Channel, msg amqp.Delivery, queueName string, maxRetry int) {
+func retryOrDLQ(ctx context.Context, ch *amqp.Channel, msg amqp.Delivery, queueName string, maxRetry int) {
 	retryCount := getRetryCount(msg.Headers)
 	retryQueue := fmt.Sprintf("%s_retry", queueName)
 	dlqQueue := fmt.Sprintf("%s_error", queueName)
@@ -174,16 +177,11 @@ func retryOrDLQ(ch *amqp.Channel, msg amqp.Delivery, queueName string, maxRetry 
 	}
 	headers["x-retry-count"] = int32(retryCount + 1)
 
-	slog.Info("routing failed message",
-		"target", target,
-		"retry_count", retryCount,
-	)
-
 	if err := ch.Publish("", target, false, false, amqp.Publishing{
 		Body:    msg.Body,
 		Headers: headers,
 	}); err != nil {
-		slog.Error("failed to route message", "target", target, "error", err)
+		logging.Error(ctx, fmt.Errorf("failed to route message. target: %s,err :%w", target, err))
 		msg.Nack(false, true)
 		return
 	}

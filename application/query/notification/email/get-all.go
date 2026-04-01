@@ -21,14 +21,14 @@ func NewGetAllQuery(emailRepository email.Repository) GetAllQuery {
 func (g *getAllQuery) Execute(ctx context.Context, request GetAllEmailRequest) (*GetAllEmailResponse, error) {
 	emails, err := g.EmailRepository.List(ctx, request.Status, request.CreateDate, request.EndDate, request.Page, request.PageSize)
 	if err != nil {
-		err = fmt.Errorf("Execute.EmailRepository.List: %w", err)
+		err = fmt.Errorf("error listing email in get all query: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}
 
 	filteredEmailCount, err := g.EmailRepository.ListCount(ctx, request.Status, request.CreateDate, request.EndDate, request.Page, request.PageSize)
 	if err != nil {
-		err = fmt.Errorf("Execute.EmailRepository.ListCount: %w", err)
+		err = fmt.Errorf("error listing email count in get all query: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}

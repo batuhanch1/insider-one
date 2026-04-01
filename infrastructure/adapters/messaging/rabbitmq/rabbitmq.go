@@ -1,9 +1,11 @@
 package rabbitmq
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"insider-one/infrastructure/config"
-	"log/slog"
+	"insider-one/infrastructure/logging"
 	"sync"
 	"time"
 
@@ -18,24 +20,26 @@ type Client struct {
 	reconnectC chan struct{}
 }
 
-func New(cfg *config.Config) (*Client, error) {
+func New(ctx context.Context, cfg *config.Config) (*Client, error) {
 	c := &Client{
 		cfg:        *cfg,
 		done:       make(chan struct{}),
 		reconnectC: make(chan struct{}, 1),
 	}
-	if err := c.connect(); err != nil {
+	if err := c.connect(ctx); err != nil {
 		return nil, err
 	}
-	go c.watchConnection()
+	go c.watchConnection(ctx)
 	return c, nil
 }
 
-func (c *Client) connect() error {
+func (c *Client) connect(ctx context.Context) error {
 	url := fmt.Sprintf("AMQP://%s:%s@%s:%d/", c.cfg.Rabbit.User, c.cfg.Rabbit.Password, c.cfg.Rabbit.Host, c.cfg.Rabbit.Port)
 	conn, err := amqp.Dial(url)
 	if err != nil {
-		return fmt.Errorf("AMQP dial: %w", err)
+		err = fmt.Errorf("AMQP dial: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	c.mu.Lock()
 	c.conn = conn
@@ -43,7 +47,7 @@ func (c *Client) connect() error {
 	return nil
 }
 
-func (c *Client) watchConnection() {
+func (c *Client) watchConnection(ctx context.Context) {
 	for {
 		c.mu.RLock()
 		conn := c.conn
@@ -55,10 +59,8 @@ func (c *Client) watchConnection() {
 			if !ok {
 				return
 			}
-			slog.Warn("RabbitMQ connection lost, reconnecting",
-				"error", amqpErr,
-			)
-			c.reconnectWithBackoff()
+			logging.Error(ctx, fmt.Errorf("RabbitMQ connection lost, reconnecting. error: %w", amqpErr))
+			c.reconnectWithBackoff(ctx)
 
 		case <-c.done:
 			return
@@ -66,7 +68,7 @@ func (c *Client) watchConnection() {
 	}
 }
 
-func (c *Client) reconnectWithBackoff() {
+func (c *Client) reconnectWithBackoff(ctx context.Context) {
 	backoff := 1 * time.Second
 	for attempt := 1; ; attempt++ {
 		select {
@@ -75,9 +77,7 @@ func (c *Client) reconnectWithBackoff() {
 		default:
 		}
 
-		slog.Info("attempting reconnect", "attempt", attempt)
-		if err := c.connect(); err == nil {
-			slog.Info("RabbitMQ reconnected", "attempt", attempt)
+		if err := c.connect(ctx); err == nil {
 			select {
 			case c.reconnectC <- struct{}{}:
 			default:
@@ -88,19 +88,21 @@ func (c *Client) reconnectWithBackoff() {
 		if backoff < 30*time.Second {
 			backoff *= 2
 		}
-		slog.Warn("reconnect failed, waiting", "backoff", backoff)
+		logging.Error(ctx, errors.New(fmt.Sprintf("reconnect failed, waiting. backoff: %v", backoff)))
 		time.Sleep(backoff)
 	}
 }
 
-func (c *Client) Channel() (*amqp.Channel, error) {
+func (c *Client) Channel(ctx context.Context) (*amqp.Channel, error) {
 	c.mu.RLock()
 	conn := c.conn
 	c.mu.RUnlock()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("open channel: %w", err)
+		err = fmt.Errorf("open channel: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 	return ch, nil
 }
@@ -110,7 +112,7 @@ func (c *Client) Close() error {
 	c.mu.RLock()
 	conn := c.conn
 	c.mu.RUnlock()
-	if conn != nil && !conn.IsClosed() {
+	if c.IsAlive() {
 		return conn.Close()
 	}
 	return nil

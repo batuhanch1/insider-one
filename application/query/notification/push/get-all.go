@@ -21,14 +21,14 @@ func NewGetAllQuery(pushRepository push.Repository) GetAllQuery {
 func (g *getAllQuery) Execute(ctx context.Context, request GetAllPushRequest) (*GetAllPushResponse, error) {
 	pushes, err := g.pushRepository.List(ctx, request.Status, request.CreateDate, request.EndDate, request.Page, request.PageSize)
 	if err != nil {
-		err = fmt.Errorf("Execute.pushRepository.List: %w", err)
+		err = fmt.Errorf("error listing push in get all query: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}
 
 	filteredPushCount, err := g.pushRepository.ListCount(ctx, request.Status, request.CreateDate, request.EndDate, request.Page, request.PageSize)
 	if err != nil {
-		err = fmt.Errorf("Execute.pushRepository.ListCount: %w", err)
+		err = fmt.Errorf("error listing push count in get all query: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}

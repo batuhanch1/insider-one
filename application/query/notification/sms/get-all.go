@@ -21,14 +21,14 @@ func NewGetAllQuery(SmsRepository sms.Repository) GetAllQuery {
 func (g *getAllQuery) Execute(ctx context.Context, request GetAllSmsRequest) (*GetAllSmsResponse, error) {
 	smsList, err := g.SmsRepository.List(ctx, request.Status, request.CreateDate, request.EndDate, request.Page, request.PageSize)
 	if err != nil {
-		err = fmt.Errorf("Execute.SmsRepository.List: %w", err)
+		err = fmt.Errorf("error listing sms in get all query: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}
 
 	filteredSmsCount, err := g.SmsRepository.ListCount(ctx, request.Status, request.CreateDate, request.EndDate, request.Page, request.PageSize)
 	if err != nil {
-		err = fmt.Errorf("Execute.SmsRepository.ListCount: %w", err)
+		err = fmt.Errorf("error listing sms count in get all query: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}

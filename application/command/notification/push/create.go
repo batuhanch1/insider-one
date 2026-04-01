@@ -2,9 +2,11 @@ package push
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification"
 	"insider-one/domain/notification/push"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 )
 
 type CreateCommand interface {
@@ -32,10 +34,13 @@ func (s *createCommand) Execute(ctx context.Context, event push.CreatePushEvent)
 	}
 	err := s.Repository.Save(ctx, p)
 	if err != nil {
+		err = fmt.Errorf("error save push in create command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 
 	if p.IsScheduled() {
+		logging.Info(ctx, "scheduled push ignored.")
 		return nil
 	}
 
@@ -53,6 +58,11 @@ func (s *createCommand) Execute(ctx context.Context, event push.CreatePushEvent)
 		RoutingKey: event.Priority,
 		Persistent: true,
 	})
+
+	if err != nil {
+		err = fmt.Errorf("error publishing push created event in create command: %w", err)
+		logging.Error(ctx, err)
+	}
 
 	return err
 }

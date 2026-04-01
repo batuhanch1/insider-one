@@ -39,7 +39,7 @@ var (
 func init() {
 	rootCmd.PersistentFlags().StringVar(&env, "env", "qa", "environment (qa|prod)")
 	rootCmd.PersistentFlags().StringVar(&priority, "priority", "*", "priority (high|medium|low)")
-	if rabbitmq.IsPriorityRoutingKeyValid(priority) {
+	if !rabbitmq.IsPriorityRoutingKeyValid(priority) {
 		panic("invalid priority")
 	}
 }

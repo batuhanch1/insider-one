@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PromMiddleware(prometheusWrapper prometheus2.Prometheus) gin.HandlerFunc {
+func PromMiddleware(prometheusWrapper *prometheus2.Prometheus) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 

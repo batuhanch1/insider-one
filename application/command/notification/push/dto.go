@@ -8,7 +8,7 @@ type SendPushRequest struct {
 	PhoneNumber string     `json:"phone_number" binding:"required,e164"`
 	Type        string     `json:"type" binding:"required"`
 	Content     string     `json:"content" binding:"required,min=1,max=1000"`
-	Priority    string     `json:"priority" binding:"required,oneof=low medium high"`
+	Priority    string     `json:"priority" binding:"required,oneof=LOW MEDIUM HIGH"`
 }
 
 type SendBatchPushRequest struct {
@@ -21,9 +21,9 @@ type SendBatchPush struct {
 	PhoneNumber string     `json:"phone_number" binding:"required,e164"`
 	Type        string     `json:"type" binding:"required"`
 	Content     string     `json:"content" binding:"required,min=1,max=1000"`
-	Priority    string     `json:"priority" binding:"required,oneof=low medium high"`
+	Priority    string     `json:"priority" binding:"required,oneof=LOW MEDIUM HIGH"`
 }
 
 type CancelPushRequest struct {
-	Status string `form:"status" binding:"required,oneof=PENDING SENT"`
+	Status string `form:"status" binding:"required,oneof=PENDING"`
 }

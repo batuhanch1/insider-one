@@ -1,7 +1,9 @@
 package rabbitmq
 
 import (
+	"context"
 	"fmt"
+	"insider-one/infrastructure/logging"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -23,35 +25,39 @@ func defaultTopologyOptions(o *TopologyOptions) {
 	}
 }
 
-func DeclareTopology(client *Client, opts TopologyOptions) error {
+func DeclareTopology(ctx context.Context, client *Client, opts TopologyOptions) error {
 	defaultTopologyOptions(&opts)
 
-	ch, err := client.Channel()
+	ch, err := client.Channel(ctx)
 	if err != nil {
-		return fmt.Errorf("declare: open channel: %w", err)
+		err = fmt.Errorf("declare: open channel: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	defer ch.Close()
 
-	if err = declareExchange(ch, opts); err != nil {
+	if err = declareExchange(ctx, ch, opts); err != nil {
 		return err
 	}
-	if err = declareMainQueue(ch, opts); err != nil {
+	if err = declareMainQueue(ctx, ch, opts); err != nil {
 		return err
 	}
-	if err = declareRetryQueue(ch, opts); err != nil {
+	if err = declareRetryQueue(ctx, ch, opts); err != nil {
 		return err
 	}
-	if err = declareErrorQueue(ch, opts); err != nil {
+	if err = declareErrorQueue(ctx, ch, opts); err != nil {
 		return err
 	}
 	if err = ch.QueueBind(opts.QueueName, opts.RoutingKey, opts.ExchangeName, false, nil); err != nil {
-		return fmt.Errorf("declare: queue bind %q: %w", opts.QueueName, err)
+		err = fmt.Errorf("declare: queue bind %q: %w", opts.QueueName, err)
+		logging.Error(ctx, err)
+		return err
 	}
 
 	return nil
 }
 
-func declareExchange(ch *amqp.Channel, opts TopologyOptions) error {
+func declareExchange(ctx context.Context, ch *amqp.Channel, opts TopologyOptions) error {
 	if err := ch.ExchangeDeclare(
 		opts.ExchangeName,
 		opts.ExchangeType,
@@ -61,12 +67,14 @@ func declareExchange(ch *amqp.Channel, opts TopologyOptions) error {
 		false,
 		nil,
 	); err != nil {
-		return fmt.Errorf("declare: exchange %q: %w", opts.ExchangeName, err)
+		err = fmt.Errorf("declare: exchange %q: %w", opts.ExchangeName, err)
+		logging.Error(ctx, err)
+		return err
 	}
 	return nil
 }
 
-func declareMainQueue(ch *amqp.Channel, opts TopologyOptions) error {
+func declareMainQueue(ctx context.Context, ch *amqp.Channel, opts TopologyOptions) error {
 	retryQueue := fmt.Sprintf("%s_retry", opts.QueueName)
 	_, err := ch.QueueDeclare(
 		opts.QueueName,
@@ -81,12 +89,14 @@ func declareMainQueue(ch *amqp.Channel, opts TopologyOptions) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("declare: main queue %q: %w", opts.QueueName, err)
+		err = fmt.Errorf("declare: main queue %q: %w", opts.QueueName, err)
+		logging.Error(ctx, err)
+		return err
 	}
 	return nil
 }
 
-func declareRetryQueue(ch *amqp.Channel, opts TopologyOptions) error {
+func declareRetryQueue(ctx context.Context, ch *amqp.Channel, opts TopologyOptions) error {
 	retryQueue := fmt.Sprintf("%s_retry", opts.QueueName)
 	_, err := ch.QueueDeclare(
 		retryQueue,
@@ -102,16 +112,20 @@ func declareRetryQueue(ch *amqp.Channel, opts TopologyOptions) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("declare: retry queue %q: %w", retryQueue, err)
+		err = fmt.Errorf("declare: retry queue %q: %w", retryQueue, err)
+		logging.Error(ctx, err)
+		return err
 	}
 	return nil
 }
 
-func declareErrorQueue(ch *amqp.Channel, opts TopologyOptions) error {
+func declareErrorQueue(ctx context.Context, ch *amqp.Channel, opts TopologyOptions) error {
 	errQueue := fmt.Sprintf("%s_error", opts.QueueName)
 	_, err := ch.QueueDeclare(errQueue, true, false, false, false, nil)
 	if err != nil {
-		return fmt.Errorf("declare: error queue %q: %w", errQueue, err)
+		err = fmt.Errorf("declare: error queue %q: %w", errQueue, err)
+		logging.Error(ctx, err)
+		return err
 	}
 	return nil
 }

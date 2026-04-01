@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"insider-one/domain/notification/email"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 )
 
 type CancelCommand interface {
@@ -23,7 +24,9 @@ func NewCancelCommand(emailRepository email.Repository, publisher rabbitmq2.Publ
 func (s *cancelCommand) Execute(ctx context.Context, request CancelEmailRequest) error {
 	emailIds, err := s.EmailRepository.GetByStatus(ctx, request.Status)
 	if err != nil {
-		return fmt.Errorf("cancelPendingCommand.emailRepository.GetByStatus: %w", err)
+		err = fmt.Errorf("error get email by status in cancel command: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 
 	for _, emailId := range emailIds {
@@ -34,6 +37,8 @@ func (s *cancelCommand) Execute(ctx context.Context, request CancelEmailRequest)
 			Persistent: true,
 		})
 		if err != nil {
+			err = fmt.Errorf("error publishing cancel email event in cancel command : %w", err)
+			logging.Error(ctx, err)
 			return err
 		}
 	}

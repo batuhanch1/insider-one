@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"insider-one/infrastructure/config"
+	"insider-one/infrastructure/logging"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,7 +14,9 @@ func Connect(dbConfig config.DBConfig, ctx context.Context) (*pgxpool.Pool, erro
 	url := fmt.Sprintf("postgres://%s:%s@%s:%v/%s?sslmode=disable", dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port, dbConfig.Name)
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		return nil, fmt.Errorf("config parse error: %w", err)
+		err = fmt.Errorf("config parse error: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	cfg.MaxConns = 20
@@ -24,11 +27,15 @@ func Connect(dbConfig config.DBConfig, ctx context.Context) (*pgxpool.Pool, erro
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("pool error: %w", err)
+		err = fmt.Errorf("pool error: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
-	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("ping error: %w", err)
+	if err = pool.Ping(ctx); err != nil {
+		err = fmt.Errorf("ping error: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	return pool, nil
@@ -57,7 +64,9 @@ CREATE INDEX IF NOT EXISTS idx_email_status_created ON email_notifications(statu
 CREATE INDEX IF NOT EXISTS idx_email_scheduled_at ON email_notifications(scheduled_at) WHERE status = 'pending' AND scheduled_at IS NOT NULL;
 `
 	if _, err := pool.Exec(ctx, query); err != nil {
-		return fmt.Errorf("migration error: %w", err)
+		err = fmt.Errorf("migration error: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	return nil
 }

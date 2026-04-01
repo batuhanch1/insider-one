@@ -69,13 +69,13 @@ func ExternalLogStart(ctx context.Context, request *http.Request) {
 
 }
 
-func ExternalLogFinish(ctx context.Context, request *http.Request, response *gin.ResponseWriter) {
+func ExternalLogFinish(ctx context.Context, request *http.Request, response *BodyWriter) {
 	var logModel = logModel{
 		Time:    time.Now().Format(utils.Layout_Time),
 		Level:   utils.LogLevel_Information,
 		Message: utils.LogStatus_Executed,
 	}
-	logModel.addCorrelationId(ctx).addExternalResponseBody(response).addExternalResponseDetails(*response).addExternalRequestDetails(request).setDuration(ctx, utils.Header_ExternalRequestStartTime).do()
+	logModel.addCorrelationId(ctx).addExternalResponseBody(response).addExternalResponseDetails(response.ResponseWriter).addExternalRequestDetails(request).setDuration(ctx, utils.Header_ExternalRequestStartTime).do()
 
 }
 
@@ -110,6 +110,16 @@ func Error(ctx context.Context, err error) {
 	}
 
 	logModel.addCorrelationId(ctx).addException(err).do()
+}
+
+func Info(ctx context.Context, message string) {
+	var logModel = logModel{
+		Time:    time.Now().Format(utils.Layout_Time),
+		Level:   utils.LogLevel_Information,
+		Message: message,
+	}
+
+	logModel.addCorrelationId(ctx).do()
 }
 
 func (l *logModel) addRequestBody(request *http.Request) *logModel {
@@ -164,14 +174,15 @@ func (l *logModel) addResponseBody(response *http.Response) *logModel {
 	return l
 }
 
-func (l *logModel) addExternalResponseBody(response *gin.ResponseWriter) *logModel {
+func (l *logModel) addExternalResponseBody(response *BodyWriter) *logModel {
 	if response == nil {
 		return l
 	}
 
-	//l.ResponseBody = bodyWriter.body.String()
+	l.ResponseBody = response.Body.String()
 	return l
 }
+
 func (l *logModel) addRequestDetails(request *http.Request) *logModel {
 	if request == nil {
 		return l

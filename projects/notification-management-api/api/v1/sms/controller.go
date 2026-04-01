@@ -32,6 +32,16 @@ func NewController(sendCommand sms.SendCommand, sendBatchCommand sms.SendBatchCo
 	return &controller{sendCommand, sendBatchCommand, cancelCommand, getAllQuery, getStatusByBatchIDQuery, getSmsStatusByIDQuery}
 }
 
+// Cancel godoc
+// @Summary      Cancel SMS
+// @Description  Cancel SMS notifications matching the given status
+// @Tags         sms
+// @Produce      json
+// @Param        status  query  string  true  "Status to cancel"  Enums(PENDING)
+// @Success      200
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/cancel [put]
 func (c *controller) Cancel(g *gin.Context) {
 	var request sms.CancelSmsRequest
 	ctx := g.Copy()
@@ -49,6 +59,17 @@ func (c *controller) Cancel(g *gin.Context) {
 	g.JSON(http.StatusOK, nil)
 }
 
+// SendBatch godoc
+// @Summary      Send batch SMS
+// @Description  Queue multiple SMS notifications (max 1000)
+// @Tags         sms
+// @Accept       json
+// @Produce      json
+// @Param        request  body      sms.SendBatchSmsRequest  true  "Send Batch SMS Request"
+// @Success      200
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/batch [post]
 func (c *controller) SendBatch(g *gin.Context) {
 	var request sms.SendBatchSmsRequest
 	ctx := g.Copy()
@@ -72,6 +93,17 @@ func (c *controller) SendBatch(g *gin.Context) {
 	g.JSON(http.StatusOK, nil)
 }
 
+// Send godoc
+// @Summary      Send SMS
+// @Description  Queue a single SMS notification
+// @Tags         sms
+// @Accept       json
+// @Produce      json
+// @Param        request  body      sms.SendSmsRequest  true  "Send SMS Request"
+// @Success      200
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/ [post]
 func (c *controller) Send(g *gin.Context) {
 	var request sms.SendSmsRequest
 	ctx := g.Copy()
@@ -89,6 +121,20 @@ func (c *controller) Send(g *gin.Context) {
 	g.JSON(http.StatusOK, nil)
 }
 
+// List godoc
+// @Summary      List SMS
+// @Description  List SMS notifications with optional date and status filters
+// @Tags         sms
+// @Produce      json
+// @Param        status       query  string  true   "Status filter"        Enums(PENDING, SENT)
+// @Param        page         query  int     true   "Page number"          minimum(1)
+// @Param        page_size    query  int     true   "Page size"            minimum(0)  maximum(50)
+// @Param        create_date  query  string  false  "Start date (RFC3339)"
+// @Param        end_date     query  string  false  "End date (RFC3339)"
+// @Success      200  {object}  query.GetAllSmsResponse
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/ [get]
 func (c *controller) List(g *gin.Context) {
 	var request query.GetAllSmsRequest
 	ctx := g.Copy()
@@ -106,6 +152,17 @@ func (c *controller) List(g *gin.Context) {
 	g.JSON(http.StatusOK, response)
 }
 
+// GetStatusByIDs godoc
+// @Summary      Get SMS statuses by IDs
+// @Description  Get the status of multiple SMS notifications
+// @Tags         sms
+// @Accept       json
+// @Produce      json
+// @Param        request  body      query.GetStatusByBatchIDRequest  true  "Batch Status Request"
+// @Success      200  {object}  query.GetStatusByBatchIDResponse
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/status/batch [post]
 func (c *controller) GetStatusByIDs(g *gin.Context) {
 	var request query.GetStatusByBatchIDRequest
 	ctx := g.Copy()
@@ -123,6 +180,16 @@ func (c *controller) GetStatusByIDs(g *gin.Context) {
 	g.JSON(http.StatusOK, response)
 }
 
+// GetStatusByID godoc
+// @Summary      Get SMS status by ID
+// @Description  Get the status of a single SMS notification
+// @Tags         sms
+// @Produce      json
+// @Param        id  query  int  true  "SMS ID"
+// @Success      200  {object}  query.GetSmsStatusByIDResponse
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/status [get]
 func (c *controller) GetStatusByID(g *gin.Context) {
 	var request query.GetSmsStatusByIDRequest
 	ctx := g.Copy()

@@ -16,6 +16,8 @@ import (
 	smsPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/sms"
 	"insider-one/infrastructure/config"
 	"insider-one/infrastructure/middleware"
+	prometheusWrapper "insider-one/infrastructure/prometheus"
+	_ "insider-one/projects/notification-management-api"
 	"insider-one/projects/notification-management-api/api/healthcheck"
 	emailController "insider-one/projects/notification-management-api/api/v1/email"
 	pushController "insider-one/projects/notification-management-api/api/v1/push"
@@ -24,7 +26,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title           Notification Management API
+// @version         1.0
+// @description     REST API for managing email, SMS, and push notifications
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in              header
+// @name            Authorization
 
 var notificationManagementApiCmd = &cobra.Command{
 	Use:   "notification-management-api",
@@ -40,7 +53,7 @@ func init() {
 func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
 
-	cfg, err := config.Load(cmd.Use, env)
+	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
 	}
@@ -51,14 +64,14 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	}
 	defer pool.Close()
 
-	rabbitMqClient, err := rabbitmq2.New(cfg)
+	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		return err
 	}
 	defer rabbitMqClient.Close()
 
 	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
-	batchPublisherChannel, err := rabbitMqClient.Channel()
+	batchPublisherChannel, err := rabbitMqClient.Channel(ctx)
 	if err != nil {
 		return err
 	}
@@ -98,12 +111,21 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	getStatusByBatchIDPushQuery := pushQuery.NewGetStatusByBatchIDQuery(pushRepository)
 	pushController := pushController.NewController(sendPushCommand, sendBatchPushCommand, cancelPushCommand, getAllPushQuery, getStatusByBatchIDPushQuery, getStatusByIDPushQuery)
 
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
+
+	prometheusWrapper := prometheusWrapper.InitForAPI()
+	router.Use(middleware.PromMiddleware(prometheusWrapper))
+	router.Use(middleware.CorrelationID())
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recovery())
+	router.Use(middleware.StartTime())
 
 	healthcheckController := healthcheck.NewController(pool, rabbitMqClient)
 	// Public routes -- no auth required
 	router.GET("/health", healthcheckController.HealthCheck)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Private routes -- Needs Auth
 	privateAPI := router.Group("/api")
@@ -116,18 +138,24 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 			email.POST("/batch", emailController.SendBatch)
 			email.GET("/", emailController.List)
 			email.PUT("/cancel", emailController.Cancel)
+			email.GET("/status", emailController.GetStatusByID)
+			email.POST("/status/batch", emailController.GetStatusByIDs)
 
 			sms := v1.Group("/sms")
 			sms.POST("/", smsController.Send)
 			sms.POST("/batch", smsController.SendBatch)
 			sms.GET("/", smsController.List)
 			sms.PUT("/cancel", smsController.Cancel)
+			sms.GET("/status", smsController.GetStatusByID)
+			sms.POST("/status/batch", smsController.GetStatusByIDs)
 
 			push := v1.Group("/push")
 			push.POST("/", pushController.Send)
 			push.POST("/batch", pushController.SendBatch)
 			push.GET("/", pushController.List)
 			push.PUT("/cancel", pushController.Cancel)
+			push.GET("/status", pushController.GetStatusByID)
+			push.POST("/status/batch", pushController.GetStatusByIDs)
 		}
 	}
 

@@ -1,1 +1,0 @@
-package email_created_consumer

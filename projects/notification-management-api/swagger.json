@@ -1,0 +1,1496 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API for managing email, SMS, and push notifications",
+        "title": "Notification Management API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/email/": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List email notifications with optional date and status filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "List emails",
+                "parameters": [
+                    {
+                        "enum": [
+                            "PENDING",
+                            "SENT"
+                        ],
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 50,
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339)",
+                        "name": "create_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/email.GetAllEmailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Queue a single email notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Send email",
+                "parameters": [
+                    {
+                        "description": "Send Email Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/email.SendEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Queue multiple email notifications (max 1000)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Send batch emails",
+                "parameters": [
+                    {
+                        "description": "Send Batch Email Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/email.SendBatchEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/cancel": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cancel email notifications matching the given status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Cancel emails",
+                "parameters": [
+                    {
+                        "enum": [
+                            "PENDING"
+                        ],
+                        "type": "string",
+                        "description": "Status to cancel",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/status": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the status of a single email notification",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get email status by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Email ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/email.GetEmailStatusByIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/email/status/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the status of multiple email notifications",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email"
+                ],
+                "summary": "Get email statuses by IDs",
+                "parameters": [
+                    {
+                        "description": "Batch Status Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/email.GetStatusByBatchIDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/email.GetStatusByBatchIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/push/": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List push notifications with optional date and status filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "List push notifications",
+                "parameters": [
+                    {
+                        "enum": [
+                            "PENDING",
+                            "SENT"
+                        ],
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 50,
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339)",
+                        "name": "create_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/push.GetAllPushResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Queue a single push notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Send push notification",
+                "parameters": [
+                    {
+                        "description": "Send Push Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/push.SendPushRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/push/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Queue multiple push notifications (max 1000)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Send batch push notifications",
+                "parameters": [
+                    {
+                        "description": "Send Batch Push Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/push.SendBatchPushRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/push/cancel": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cancel push notifications matching the given status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Cancel push notifications",
+                "parameters": [
+                    {
+                        "enum": [
+                            "PENDING"
+                        ],
+                        "type": "string",
+                        "description": "Status to cancel",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/push/status": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the status of a single push notification",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Get push notification status by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Push ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/push.GetPushStatusByIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/push/status/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the status of multiple push notifications",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "push"
+                ],
+                "summary": "Get push notification statuses by IDs",
+                "parameters": [
+                    {
+                        "description": "Batch Status Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/push.GetStatusByBatchIDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/push.GetStatusByBatchIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sms/": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List SMS notifications with optional date and status filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sms"
+                ],
+                "summary": "List SMS",
+                "parameters": [
+                    {
+                        "enum": [
+                            "PENDING",
+                            "SENT"
+                        ],
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 50,
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339)",
+                        "name": "create_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sms.GetAllSmsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Queue a single SMS notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sms"
+                ],
+                "summary": "Send SMS",
+                "parameters": [
+                    {
+                        "description": "Send SMS Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sms.SendSmsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sms/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Queue multiple SMS notifications (max 1000)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sms"
+                ],
+                "summary": "Send batch SMS",
+                "parameters": [
+                    {
+                        "description": "Send Batch SMS Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sms.SendBatchSmsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sms/cancel": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cancel SMS notifications matching the given status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sms"
+                ],
+                "summary": "Cancel SMS",
+                "parameters": [
+                    {
+                        "enum": [
+                            "PENDING"
+                        ],
+                        "type": "string",
+                        "description": "Status to cancel",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sms/status": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the status of a single SMS notification",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sms"
+                ],
+                "summary": "Get SMS status by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "SMS ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sms.GetSmsStatusByIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sms/status/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the status of multiple SMS notifications",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sms"
+                ],
+                "summary": "Get SMS statuses by IDs",
+                "parameters": [
+                    {
+                        "description": "Batch Status Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sms.GetStatusByBatchIDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sms.GetStatusByBatchIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/error_handling.Errors"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the health status of the service including DB and RabbitMQ connectivity",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "email.Email": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "deleted_at": {
+                    "type": "integer"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "idempotency_key": {
+                    "type": "integer"
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "scheduled_at": {
+                    "type": "integer"
+                },
+                "sent_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "email.GetAllEmailResponse": {
+            "type": "object",
+            "required": [
+                "page",
+                "page_size"
+            ],
+            "properties": {
+                "emails": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/email.Email"
+                    }
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "maximum": 50,
+                    "minimum": 0
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "email.GetEmailStatusByIDResponse": {
+            "type": "object",
+            "properties": {
+                "email_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "email.GetStatusByBatchIDRequest": {
+            "type": "object",
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "email.GetStatusByBatchIDResponse": {
+            "type": "object",
+            "properties": {
+                "emails": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/email.GetEmailStatusByIDResponse"
+                    }
+                }
+            }
+        },
+        "email.SendBatchEmail": {
+            "type": "object",
+            "required": [
+                "content",
+                "from",
+                "priority",
+                "subject",
+                "to",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "minLength": 1
+                },
+                "from": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                    ]
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "to": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                }
+            }
+        },
+        "email.SendBatchEmailRequest": {
+            "type": "object",
+            "properties": {
+                "emails": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/email.SendBatchEmail"
+                    }
+                }
+            }
+        },
+        "email.SendEmailRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "from",
+                "priority",
+                "subject",
+                "to",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "minLength": 1
+                },
+                "from": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                    ]
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                },
+                "to": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "minLength": 1
+                }
+            }
+        },
+        "error_handling.Errors": {
+            "type": "object",
+            "properties": {
+                "CorrelationID": {
+                    "type": "string"
+                },
+                "Err": {},
+                "ErrorType": {
+                    "type": "string"
+                },
+                "Message": {
+                    "type": "string"
+                },
+                "Parameter": {
+                    "type": "string"
+                },
+                "StackTrace": {
+                    "type": "string"
+                },
+                "StatusCode": {
+                    "type": "integer"
+                }
+            }
+        },
+        "push.GetAllPushResponse": {
+            "type": "object",
+            "required": [
+                "page",
+                "page_size"
+            ],
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "maximum": 50,
+                    "minimum": 0
+                },
+                "pushes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/push.Push"
+                    }
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "push.GetPushStatusByIDResponse": {
+            "type": "object",
+            "properties": {
+                "push_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "push.GetStatusByBatchIDRequest": {
+            "type": "object",
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "push.GetStatusByBatchIDResponse": {
+            "type": "object",
+            "properties": {
+                "pushes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/push.GetPushStatusByIDResponse"
+                    }
+                }
+            }
+        },
+        "push.Push": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "deleted_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "idempotency_key": {
+                    "type": "integer"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "scheduled_at": {
+                    "type": "integer"
+                },
+                "sender": {
+                    "type": "string"
+                },
+                "sent_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "push.SendBatchPush": {
+            "type": "object",
+            "required": [
+                "content",
+                "phone_number",
+                "priority",
+                "sender",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "minLength": 1
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                    ]
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "sender": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "push.SendBatchPushRequest": {
+            "type": "object",
+            "properties": {
+                "pushes": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/push.SendBatchPush"
+                    }
+                }
+            }
+        },
+        "push.SendPushRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "phone_number",
+                "priority",
+                "sender",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "minLength": 1
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                    ]
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "sender": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "sms.GetAllSmsResponse": {
+            "type": "object",
+            "required": [
+                "page",
+                "page_size"
+            ],
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "maximum": 50,
+                    "minimum": 0
+                },
+                "smsList": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sms.Sms"
+                    }
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sms.GetSmsStatusByIDResponse": {
+            "type": "object",
+            "properties": {
+                "sms_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "sms.GetStatusByBatchIDRequest": {
+            "type": "object",
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "sms.GetStatusByBatchIDResponse": {
+            "type": "object",
+            "properties": {
+                "smsList": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sms.GetSmsStatusByIDResponse"
+                    }
+                }
+            }
+        },
+        "sms.SendBatchSms": {
+            "type": "object",
+            "required": [
+                "content",
+                "phone_number",
+                "priority",
+                "sender",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 160,
+                    "minLength": 1
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                    ]
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "sender": {
+                    "type": "string",
+                    "maxLength": 11,
+                    "minLength": 2
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "sms.SendBatchSmsRequest": {
+            "type": "object",
+            "properties": {
+                "sms": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/sms.SendBatchSms"
+                    }
+                }
+            }
+        },
+        "sms.SendSmsRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "phone_number",
+                "priority",
+                "sender",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 160,
+                    "minLength": 1
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH"
+                    ]
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "sender": {
+                    "type": "string",
+                    "maxLength": 11,
+                    "minLength": 2
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "sms.Sms": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "deleted_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "idempotency_key": {
+                    "type": "integer"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "scheduled_at": {
+                    "type": "integer"
+                },
+                "sender": {
+                    "type": "string"
+                },
+                "sent_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

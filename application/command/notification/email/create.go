@@ -2,9 +2,11 @@ package email
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification"
 	"insider-one/domain/notification/email"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 )
 
 type CreateCommand interface {
@@ -33,10 +35,13 @@ func (s *createCommand) Execute(ctx context.Context, event email.CreateEmailEven
 	}
 	err := s.Repository.Save(ctx, e)
 	if err != nil {
+		err = fmt.Errorf("error save email in create command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 
 	if e.IsScheduled() {
+		logging.Info(ctx, "scheduled email ignored.")
 		return nil
 	}
 
@@ -54,5 +59,9 @@ func (s *createCommand) Execute(ctx context.Context, event email.CreateEmailEven
 		RoutingKey: event.Priority,
 		Persistent: true,
 	})
+	if err != nil {
+		err = fmt.Errorf("error publishing email created event in create command: %w", err)
+		logging.Error(ctx, err)
+	}
 	return err
 }

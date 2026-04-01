@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"insider-one/domain/notification/sms"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 )
 
 type CancelCommand interface {
@@ -23,7 +24,9 @@ func NewCancelCommand(smsRepository sms.Repository, publisher rabbitmq2.Publishe
 func (s *cancelCommand) Execute(ctx context.Context, request CancelSmsRequest) error {
 	smsIds, err := s.SmsRepository.GetByStatus(ctx, request.Status)
 	if err != nil {
-		return fmt.Errorf("cancelCommand.smsRepository.GetByStatus: %w", err)
+		err = fmt.Errorf("error get sms by status in cancel command: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 
 	for _, smsId := range smsIds {
@@ -34,6 +37,8 @@ func (s *cancelCommand) Execute(ctx context.Context, request CancelSmsRequest) e
 			Persistent: true,
 		})
 		if err != nil {
+			err = fmt.Errorf("error publishing cancel sms event in cancel command : %w", err)
+			logging.Error(ctx, err)
 			return err
 		}
 	}

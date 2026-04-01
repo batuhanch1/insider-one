@@ -2,8 +2,10 @@ package push
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification/push"
 	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/logging"
 
 	"github.com/cespare/xxhash/v2"
 )
@@ -41,6 +43,8 @@ func (s *sendCommand) Execute(ctx context.Context, request SendPushRequest) erro
 		Persistent: true,
 	})
 	if err != nil {
+		err = fmt.Errorf("error publishing create push event in send command: %w", err)
+		logging.Error(ctx, err)
 		return err
 	}
 

@@ -14,7 +14,6 @@ import (
 	prometheusWrapper "insider-one/infrastructure/prometheus"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -32,13 +31,13 @@ func init() {
 }
 
 func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
-	var environment = os.Getenv("APP_ENV")
-	cfg, err := config.Load(cmd.Use, environment)
+	ctx := context.Background()
+	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
 	}
 
-	client, err := rabbitmq2.New(cfg)
+	client, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,12 +46,11 @@ func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_SmsCreated_Generic, priority)
 	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_SmsCreated,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
-	ctx := context.Background()
 
 	pool, err := postgresql.Connect(cfg.DB, ctx)
 	if err != nil {

@@ -31,23 +31,23 @@ func init() {
 }
 
 func cancelSmsConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
-	cfg, err := config.Load(cmd.Use, env)
+	ctx := context.Background()
+	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
 	}
 
-	client, err := rabbitmq2.New(cfg)
+	client, err := rabbitmq2.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer client.Close()
 
-	err = rabbitmq2.DeclareTopology(client, rabbitmq2.TopologyOptions{
+	err = rabbitmq2.DeclareTopology(ctx, client, rabbitmq2.TopologyOptions{
 		ExchangeName: rabbitmq2.Exchange_CancelSms,
 		QueueName:    rabbitmq2.Queue_CancelSms,
 		RoutingKey:   rabbitmq2.RoutingKey_Asterisk,
 	})
-	ctx := context.Background()
 
 	pool, err := postgresql.Connect(cfg.DB, ctx)
 	if err != nil {

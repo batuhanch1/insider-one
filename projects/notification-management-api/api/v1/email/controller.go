@@ -32,6 +32,16 @@ func NewController(sendCommand command.SendCommand, sendBatchCommand command.Sen
 	return &controller{sendCommand, sendBatchCommand, cancelCommand, getAllQuery, getStatusByBatchIDQuery, getEmailStatusByIDQuery}
 }
 
+// Cancel godoc
+// @Summary      Cancel emails
+// @Description  Cancel email notifications matching the given status
+// @Tags         email
+// @Produce      json
+// @Param        status  query  string  true  "Status to cancel"  Enums(PENDING)
+// @Success      200
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/email/cancel [put]
 func (c *controller) Cancel(g *gin.Context) {
 	var request command.CancelEmailRequest
 	ctx := g.Copy()
@@ -49,6 +59,17 @@ func (c *controller) Cancel(g *gin.Context) {
 	g.JSON(http.StatusOK, nil)
 }
 
+// SendBatch godoc
+// @Summary      Send batch emails
+// @Description  Queue multiple email notifications (max 1000)
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        request  body      command.SendBatchEmailRequest  true  "Send Batch Email Request"
+// @Success      200
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/email/batch [post]
 func (c *controller) SendBatch(g *gin.Context) {
 	var request command.SendBatchEmailRequest
 	ctx := g.Copy()
@@ -71,6 +92,17 @@ func (c *controller) SendBatch(g *gin.Context) {
 	g.JSON(http.StatusOK, nil)
 }
 
+// Send godoc
+// @Summary      Send email
+// @Description  Queue a single email notification
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        request  body      command.SendEmailRequest  true  "Send Email Request"
+// @Success      200
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/email/ [post]
 func (c *controller) Send(g *gin.Context) {
 	var request command.SendEmailRequest
 	ctx := g.Copy()
@@ -88,6 +120,20 @@ func (c *controller) Send(g *gin.Context) {
 	g.JSON(http.StatusOK, nil)
 }
 
+// List godoc
+// @Summary      List emails
+// @Description  List email notifications with optional date and status filters
+// @Tags         email
+// @Produce      json
+// @Param        status       query  string  true   "Status filter"        Enums(PENDING, SENT)
+// @Param        page         query  int     true   "Page number"          minimum(1)
+// @Param        page_size    query  int     true   "Page size"            minimum(0)  maximum(50)
+// @Param        create_date  query  string  false  "Start date (RFC3339)"
+// @Param        end_date     query  string  false  "End date (RFC3339)"
+// @Success      200  {object}  query.GetAllEmailResponse
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/email/ [get]
 func (c *controller) List(g *gin.Context) {
 	var request query.GetAllEmailRequest
 	ctx := g.Copy()
@@ -105,6 +151,17 @@ func (c *controller) List(g *gin.Context) {
 	g.JSON(http.StatusOK, response)
 }
 
+// GetStatusByIDs godoc
+// @Summary      Get email statuses by IDs
+// @Description  Get the status of multiple email notifications
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        request  body      query.GetStatusByBatchIDRequest  true  "Batch Status Request"
+// @Success      200  {object}  query.GetStatusByBatchIDResponse
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/email/status/batch [post]
 func (c *controller) GetStatusByIDs(g *gin.Context) {
 	var request query.GetStatusByBatchIDRequest
 	ctx := g.Copy()
@@ -122,6 +179,16 @@ func (c *controller) GetStatusByIDs(g *gin.Context) {
 	g.JSON(http.StatusOK, response)
 }
 
+// GetStatusByID godoc
+// @Summary      Get email status by ID
+// @Description  Get the status of a single email notification
+// @Tags         email
+// @Produce      json
+// @Param        id  query  int  true  "Email ID"
+// @Success      200  {object}  query.GetEmailStatusByIDResponse
+// @Failure      400  {object}  error_handling.Errors
+// @Security     ApiKeyAuth
+// @Router       /api/v1/email/status [get]
 func (c *controller) GetStatusByID(g *gin.Context) {
 	var request query.GetEmailStatusByIDRequest
 	ctx := g.Copy()

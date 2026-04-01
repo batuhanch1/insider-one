@@ -2,7 +2,9 @@ package email
 
 import (
 	"context"
+	"fmt"
 	"insider-one/domain/notification/email"
+	"insider-one/infrastructure/logging"
 )
 
 type GetStatusByBatchIDQuery interface {
@@ -20,6 +22,8 @@ func NewGetStatusByBatchIDQuery(emailRepository email.Repository) GetStatusByBat
 func (g *getStatusByBatchIDQuery) Execute(ctx context.Context, requests GetStatusByBatchIDRequest) (*GetStatusByBatchIDResponse, error) {
 	getStatusByBatchID, err := g.EmailRepository.GetStatusByID(ctx, requests.IDs)
 	if err != nil {
+		err = fmt.Errorf("error get email status by ids in getStatusByBatchIDQuery: %w", err)
+		logging.Error(ctx, err)
 		return nil, err
 	}
 

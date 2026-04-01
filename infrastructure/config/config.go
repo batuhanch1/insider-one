@@ -1,7 +1,9 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"insider-one/infrastructure/logging"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -53,20 +55,24 @@ type PushProviderConfig struct {
 	Password string `mapstructure:"PASSWORD"`
 }
 
-func Load(appName, environment string) (*Config, error) {
+func Load(ctx context.Context, appName, environment string) (*Config, error) {
 	path := fmt.Sprintf("./projects/%s/%s.env", appName, environment)
 	viper.SetConfigFile(path)
 	viper.SetConfigType("env")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf(".env cannot read: %w", err)
+		err = fmt.Errorf(".env cannot read: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	cfg := &Config{}
 
 	if err := viper.Unmarshal(cfg); err != nil {
-		return nil, fmt.Errorf("config parse error: %w", err)
+		err = fmt.Errorf("config parse error: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 
 	return cfg, nil

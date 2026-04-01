@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"insider-one/infrastructure/logging"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -27,12 +28,16 @@ type PublishOptions struct {
 func (p *Publisher) Publish(ctx context.Context, v any, opts PublishOptions) error {
 	body, err := json.Marshal(v)
 	if err != nil {
-		return fmt.Errorf("publisher: marshal: %w", err)
+		err = fmt.Errorf("publisher: marshal: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 
-	ch, err := p.client.Channel()
+	ch, err := p.client.Channel(ctx)
 	if err != nil {
-		return fmt.Errorf("publisher: open channel: %w", err)
+		err = fmt.Errorf("publisher: open channel: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	defer ch.Close()
 
@@ -56,7 +61,11 @@ func (p *Publisher) Publish(ctx context.Context, v any, opts PublishOptions) err
 	)
 
 	if err != nil {
-		return fmt.Errorf("publisher: publish json: %w", err)
+		err = fmt.Errorf("publisher: publish json: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
+	logging.WriteMessageToQueue(ctx, body, opts.Exchange, opts.RoutingKey)
+
 	return nil
 }

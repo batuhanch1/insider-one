@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"insider-one/domain/notification"
 	smsDomain "insider-one/domain/notification/sms"
+	"insider-one/infrastructure/logging"
 	"strings"
 	"time"
 
@@ -50,12 +51,16 @@ VALUES (
     $9   -- idempotency_key
 ) ON CONFLICT DO NOTHING;`
 
+	logging.DbQueryStart(ctx, query)
 	result, err := r.pool.Exec(ctx, query, sms.PhoneNumber, sms.Sender, sms.Content, sms.Status, sms.Type, sms.ScheduledAt, sms.SentAt, sms.DeletedAt, sms.IdempotencyKey)
+	logging.DbQueryFinish(ctx)
 	if err != nil {
-		return fmt.Errorf("save error: %w", err)
+		err = fmt.Errorf("save error: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	if result.RowsAffected() == 0 {
-		return errors.New("rowsAffected is zero. save error")
+		logging.Error(ctx, errors.New("rowsAffected is zero. save error"))
 	}
 	return nil
 }
@@ -113,9 +118,13 @@ func (r *repository) List(ctx context.Context, status string, startDate, endDate
 
 	args = append(args, pageSize, offset)
 
+	logging.DbQueryStart(ctx, query)
 	rows, err := r.pool.Query(ctx, query, args...)
+	logging.DbQueryFinish(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list sms query error: %w", err)
+		err = fmt.Errorf("list sms query error: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -138,7 +147,9 @@ func (r *repository) List(ctx context.Context, status string, startDate, endDate
 			&sms.IdempotencyKey,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("list sms scan error: %w", err)
+			err = fmt.Errorf("list sms scan error: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
 		}
 
 		if scheduledAt.Valid {
@@ -154,8 +165,10 @@ func (r *repository) List(ctx context.Context, status string, startDate, endDate
 		SmsList = append(SmsList, sms)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list sms rows error: %w", err)
+	if err = rows.Err(); err != nil {
+		err = fmt.Errorf("list sms rows error: %w", err)
+		logging.Error(ctx, err)
+		return nil, err
 	}
 	return SmsList, nil
 }
@@ -175,9 +188,13 @@ func (r *repository) ListCount(ctx context.Context, status string, startDate, en
 	args = append(args, pageSize, offset)
 
 	var totalCount int
+	logging.DbQueryStart(ctx, query)
 	err := r.pool.QueryRow(ctx, query, args...).Scan(&totalCount)
+	logging.DbQueryFinish(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("listCount error: %w", err)
+		err = fmt.Errorf("listCount error: %w", err)
+		logging.Error(ctx, err)
+		return 0, err
 	}
 	return totalCount, nil
 }
@@ -196,9 +213,13 @@ func (r *repository) GetByStatus(ctx context.Context, status string) ([]uint64, 
 			LIMIT $3
 		`
 
+		logging.DbQueryStart(ctx, query)
 		rows, err := r.pool.Query(ctx, query, status, lastID, defaultBatchSize)
+		logging.DbQueryFinish(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("getByStatus query: %w", err)
+			err = fmt.Errorf("getByStatus query: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
 		}
 
 		ids := make([]uint64, 0, defaultBatchSize)
@@ -206,14 +227,18 @@ func (r *repository) GetByStatus(ctx context.Context, status string) ([]uint64, 
 			var id uint64
 			if err = rows.Scan(&id); err != nil {
 				rows.Close()
-				return nil, fmt.Errorf("getByStatus scan: %w", err)
+				err = fmt.Errorf("getByStatus scan: %w", err)
+				logging.Error(ctx, err)
+				return nil, err
 			}
 			ids = append(ids, id)
 		}
 
-		if err := rows.Err(); err != nil {
+		if err = rows.Err(); err != nil {
 			rows.Close()
-			return nil, fmt.Errorf("getByStatus rows: %w", err)
+			err = fmt.Errorf("getByStatus rows: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
 		}
 
 		rows.Close()
@@ -242,12 +267,16 @@ func (r *repository) UpdateStatus(ctx context.Context, ids []uint64) error {
         RETURNING id
     `
 
+	logging.DbQueryStart(ctx, query)
 	result, err := r.pool.Exec(ctx, query, notification.Notification_Status_Pending, ids)
+	logging.DbQueryFinish(ctx)
 	if err != nil {
-		return fmt.Errorf("update status query: %w", err)
+		err = fmt.Errorf("update status query: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	if result.RowsAffected() == 0 {
-		return errors.New("no row updated")
+		logging.Error(ctx, errors.New("no row updated"))
 	}
 
 	return nil
@@ -267,9 +296,13 @@ func (r *repository) GetStatusByID(ctx context.Context, ids []uint64) (smsDomain
 			LIMIT $3
 		`
 
+		logging.DbQueryStart(ctx, query)
 		rows, err := r.pool.Query(ctx, query, ids, lastID, defaultBatchSize)
+		logging.DbQueryFinish(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("getStatusByID query: %w", err)
+			err = fmt.Errorf("getStatusByID query: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
 		}
 
 		batch := make(smsDomain.SmsList, 0, defaultBatchSize)
@@ -277,14 +310,18 @@ func (r *repository) GetStatusByID(ctx context.Context, ids []uint64) (smsDomain
 			var sms smsDomain.Sms
 			if err = rows.Scan(&sms.ID, &sms.Status); err != nil {
 				rows.Close()
-				return nil, fmt.Errorf("getStatusByID scan: %w", err)
+				err = fmt.Errorf("getStatusByID scan: %w", err)
+				logging.Error(ctx, err)
+				return nil, err
 			}
 			batch = append(batch, sms)
 		}
 
-		if err := rows.Err(); err != nil {
+		if err = rows.Err(); err != nil {
 			rows.Close()
-			return nil, fmt.Errorf("getStatusByID rows: %w", err)
+			err = fmt.Errorf("getStatusByID rows: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
 		}
 
 		rows.Close()
@@ -312,12 +349,16 @@ func (r *repository) Deliver(ctx context.Context, messageId string, idempotencyK
         WHERE id = $2
           AND deleted_at IS NULL;`
 
+	logging.DbQueryStart(ctx, query)
 	result, err := r.pool.Exec(ctx, query, notification.Notification_Status_Delivered, idempotencyKey, messageId)
+	logging.DbQueryFinish(ctx)
 	if err != nil {
-		return fmt.Errorf("deliver query: %w", err)
+		err = fmt.Errorf("deliver query: %w", err)
+		logging.Error(ctx, err)
+		return err
 	}
 	if result.RowsAffected() == 0 {
-		return errors.New("no row updated")
+		logging.Error(ctx, errors.New("no row updated"))
 	}
 
 	return nil
