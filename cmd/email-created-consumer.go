@@ -7,7 +7,7 @@ import (
 	emailCommand "insider-one/application/command/notification/email"
 	"insider-one/infrastructure/adapters/client"
 	emailProvider "insider-one/infrastructure/adapters/client/email-provider"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
 	emailPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/email"
@@ -39,17 +39,17 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rabbitMqClient.Close()
 
-	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_EmailCreated_Generic, priority)
-	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
+	genericQueueName := fmt.Sprintf(rabbitmq.Queue_EmailCreated_Generic, priority)
+	genericRoutingKey := fmt.Sprintf(rabbitmq.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
-		ExchangeName: rabbitmq2.Exchange_EmailCreated,
+	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
+		ExchangeName: rabbitmq.Exchange_EmailCreated,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
@@ -60,7 +60,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	httpClient := client.NewClient()
 	emailRepository := emailPersistence.NewRepository(pool)
 	emailProvider := emailProvider.NewEmailProvider(httpClient, cfg.EmailProvider)
@@ -77,7 +77,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, emailCreatedHandler.HandleMessage, prometheusWrapper, emailCreatedConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, genericQueueName, emailCreatedHandler.HandleMessage, prometheusWrapper, emailCreatedConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	return err
 }
 
-func emailCreatedConsumerOptions(o *rabbitmq2.ConsumerOptions) {
+func emailCreatedConsumerOptions(o *rabbitmq.ConsumerOptions) {
 	o.WorkerCount = 10
 	o.PrefetchCount = 10
 	o.MaxRetry = 5

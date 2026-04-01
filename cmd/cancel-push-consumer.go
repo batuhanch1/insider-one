@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	pushCommand "insider-one/application/command/notification/push"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
 	pushPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/push"
@@ -37,16 +37,16 @@ func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rabbitMqClient.Close()
 
-	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
-		ExchangeName: rabbitmq2.Exchange_CancelPush,
-		QueueName:    rabbitmq2.Queue_CancelPush,
-		RoutingKey:   rabbitmq2.RoutingKey_Asterisk,
+	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
+		ExchangeName: rabbitmq.Exchange_CancelPush,
+		QueueName:    rabbitmq.Queue_CancelPush,
+		RoutingKey:   rabbitmq.RoutingKey_Asterisk,
 	})
 
 	pool, err := postgresql.Connect(cfg.DB, ctx)
@@ -55,7 +55,7 @@ func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	pushRepository := pushPersistence.NewRepository(pool)
 	pushCreateCommand := pushCommand.NewCreateCommand(pushRepository, publisher)
 	createpushHandler := handler.NewCreatePushHandler(pushCreateCommand)
@@ -70,7 +70,7 @@ func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(rabbitMqClient, rabbitmq2.Queue_CancelPush, createpushHandler.HandleMessage, prometheusWrapper, cancelPushConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelPush, createpushHandler.HandleMessage, prometheusWrapper, cancelPushConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	return err
 }
 
-func cancelPushConsumerOptions(o *rabbitmq2.ConsumerOptions) {
+func cancelPushConsumerOptions(o *rabbitmq.ConsumerOptions) {
 	o.WorkerCount = 10
 	o.PrefetchCount = 10
 	o.MaxRetry = 5

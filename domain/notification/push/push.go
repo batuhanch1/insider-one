@@ -1,5 +1,10 @@
 package push
 
+import (
+	"insider-one/domain/notification"
+	"time"
+)
+
 type Pushes []Push
 type Push struct {
 	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
@@ -13,8 +18,16 @@ type Push struct {
 	Type           string `json:"type,omitempty"`
 	Status         string `json:"status,omitempty"`
 	Content        string `json:"content,omitempty"`
+	Priority       string `json:"priority,omitempty"`
 }
 
 func (p *Push) IsScheduled() bool {
-	return p.ScheduledAt > 0
+	return p.ScheduledAt > time.Now().Unix()
+}
+
+func (p *Push) SetStatus() {
+	p.Status = notification.Notification_Status_Pending
+	if p.IsScheduled() {
+		p.Status = notification.Notification_Status_Scheduled
+	}
 }

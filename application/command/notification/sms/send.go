@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"insider-one/domain/notification/sms"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/logging"
 
 	"github.com/cespare/xxhash/v2"
@@ -15,10 +15,10 @@ type SendCommand interface {
 }
 
 type sendCommand struct {
-	Publisher *rabbitmq2.Publisher
+	Publisher *rabbitmq.Publisher
 }
 
-func NewSendCommand(publisher *rabbitmq2.Publisher) SendCommand {
+func NewSendCommand(publisher *rabbitmq.Publisher) SendCommand {
 	return &sendCommand{publisher}
 }
 
@@ -38,8 +38,8 @@ func (s *sendCommand) Execute(ctx context.Context, request SendSmsRequest) error
 		smsEvent.ScheduledAt = request.ScheduledAt.Unix()
 	}
 
-	err := s.Publisher.Publish(ctx, smsEvent, rabbitmq2.PublishOptions{
-		Exchange:   rabbitmq2.Exchange_CreateSms,
+	err := s.Publisher.Publish(ctx, smsEvent, rabbitmq.PublishOptions{
+		Exchange:   rabbitmq.Exchange_CreateSms,
 		RoutingKey: request.Priority,
 		Persistent: true,
 	})

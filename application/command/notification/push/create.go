@@ -3,9 +3,8 @@ package push
 import (
 	"context"
 	"fmt"
-	"insider-one/domain/notification"
 	"insider-one/domain/notification/push"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/logging"
 )
 
@@ -15,10 +14,10 @@ type CreateCommand interface {
 
 type createCommand struct {
 	Repository push.Repository
-	Publisher  *rabbitmq2.Publisher
+	Publisher  *rabbitmq.Publisher
 }
 
-func NewCreateCommand(repository push.Repository, publisher *rabbitmq2.Publisher) CreateCommand {
+func NewCreateCommand(repository push.Repository, publisher *rabbitmq.Publisher) CreateCommand {
 	return &createCommand{repository, publisher}
 }
 
@@ -28,10 +27,11 @@ func (s *createCommand) Execute(ctx context.Context, event push.CreatePushEvent)
 		Sender:         event.Sender,
 		PhoneNumber:    event.PhoneNumber,
 		Type:           event.Type,
-		Status:         notification.Notification_Status_Pending,
 		Content:        event.Content,
 		IdempotencyKey: event.IdempotencyKey,
+		Priority:       event.Priority,
 	}
+	p.SetStatus()
 	err := s.Repository.Save(ctx, p)
 	if err != nil {
 		err = fmt.Errorf("error save push in create command: %w", err)
@@ -45,7 +45,6 @@ func (s *createCommand) Execute(ctx context.Context, event push.CreatePushEvent)
 	}
 
 	pushCreatedEvent := push.PushCreatedEvent{
-		ScheduledAt:    p.ScheduledAt,
 		IdempotencyKey: p.IdempotencyKey,
 		Sender:         p.Sender,
 		PhoneNumber:    p.PhoneNumber,
@@ -53,8 +52,8 @@ func (s *createCommand) Execute(ctx context.Context, event push.CreatePushEvent)
 		Status:         p.Status,
 		Content:        p.Content,
 	}
-	err = s.Publisher.Publish(ctx, pushCreatedEvent, rabbitmq2.PublishOptions{
-		Exchange:   rabbitmq2.Exchange_PushCreated,
+	err = s.Publisher.Publish(ctx, pushCreatedEvent, rabbitmq.PublishOptions{
+		Exchange:   rabbitmq.Exchange_PushCreated,
 		RoutingKey: event.Priority,
 		Persistent: true,
 	})

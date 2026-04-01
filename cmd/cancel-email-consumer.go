@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	emailCommand "insider-one/application/command/notification/email"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
 	emailPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/email"
@@ -38,16 +38,16 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rabbitMqClient.Close()
 
-	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
-		ExchangeName: rabbitmq2.Exchange_CancelEmail,
-		QueueName:    rabbitmq2.Queue_CancelEmail,
-		RoutingKey:   rabbitmq2.RoutingKey_Asterisk,
+	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
+		ExchangeName: rabbitmq.Exchange_CancelEmail,
+		QueueName:    rabbitmq.Queue_CancelEmail,
+		RoutingKey:   rabbitmq.RoutingKey_Asterisk,
 	})
 
 	pool, err := postgresql.Connect(cfg.DB, ctx)
@@ -56,7 +56,7 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	emailRepository := emailPersistence.NewRepository(pool)
 	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, publisher)
 	createEmailHandler := handler.NewCreateEmailHandler(emailCreateCommand)
@@ -70,7 +70,7 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(rabbitMqClient, rabbitmq2.Queue_CancelEmail, createEmailHandler.HandleMessage, prometheusWrapper, cancelEmailConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelEmail, createEmailHandler.HandleMessage, prometheusWrapper, cancelEmailConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	return err
 }
 
-func cancelEmailConsumerOptions(o *rabbitmq2.ConsumerOptions) {
+func cancelEmailConsumerOptions(o *rabbitmq.ConsumerOptions) {
 	o.WorkerCount = 10
 	o.PrefetchCount = 10
 	o.MaxRetry = 5

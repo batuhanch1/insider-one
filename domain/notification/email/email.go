@@ -1,5 +1,10 @@
 package email
 
+import (
+	"insider-one/domain/notification"
+	"time"
+)
+
 type Emails []Email
 type Email struct {
 	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
@@ -15,8 +20,16 @@ type Email struct {
 	Status         string `json:"status,omitempty"`
 	Type           string `json:"type,omitempty"`
 	MessageID      string `json:"message_id,omitempty"`
+	Priority       string `json:"priority,omitempty"`
 }
 
 func (e *Email) IsScheduled() bool {
-	return e.ScheduledAt > 0
+	return e.ScheduledAt > time.Now().Unix()
+}
+
+func (e *Email) SetStatus() {
+	e.Status = notification.Notification_Status_Pending
+	if e.IsScheduled() {
+		e.Status = notification.Notification_Status_Scheduled
+	}
 }

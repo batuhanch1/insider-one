@@ -3,6 +3,7 @@ package notification
 const (
 	Notification_Status_Pending   = "PENDING"
 	Notification_Status_Delivered = "DELIVERED"
+	Notification_Status_Scheduled = "SCHEDULED"
 )
 
 const (

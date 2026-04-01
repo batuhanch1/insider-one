@@ -16,6 +16,7 @@ type Config struct {
 	SmsProvider   SmsProviderConfig   `mapstructure:"SMSPROVIDER"`
 	EmailProvider EmailProviderConfig `mapstructure:"EMAILPROVIDER"`
 	PushProvider  PushProviderConfig  `mapstructure:"PUSHPROVIDER"`
+	Redis         RedisConfig         `mapstructure:"REDIS"`
 }
 
 type AppConfig struct {
@@ -51,6 +52,13 @@ type EmailProviderConfig struct {
 }
 type PushProviderConfig struct {
 	Host     string `mapstructure:"HOST"`
+	User     string `mapstructure:"USER"`
+	Password string `mapstructure:"PASSWORD"`
+}
+type RedisConfig struct {
+	Host     string `mapstructure:"HOST"`
+	Port     int    `mapstructure:"PORT"`
+	DB       int    `mapstructure:"DB"`
 	User     string `mapstructure:"USER"`
 	Password string `mapstructure:"PASSWORD"`
 }

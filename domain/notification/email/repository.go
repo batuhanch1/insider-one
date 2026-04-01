@@ -13,4 +13,5 @@ type Repository interface {
 	UpdateStatus(ctx context.Context, ids []uint64) error
 	GetStatusByID(ctx context.Context, ids []uint64) (Emails, error)
 	Deliver(ctx context.Context, messageId string, idempotencyKey uint64) error
+	GetScheduled(ctx context.Context, scheduledAt int64) (Emails, error)
 }

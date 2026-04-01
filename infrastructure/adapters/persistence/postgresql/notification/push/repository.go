@@ -364,3 +364,63 @@ func (r *repository) Deliver(ctx context.Context, messageId string, idempotencyK
 
 	return nil
 }
+
+func (r *repository) GetScheduled(ctx context.Context, scheduledAt int64) (pushDomain.Pushes, error) {
+	var lastID uint64 = 0
+	var totalPushes pushDomain.Pushes
+
+	for {
+		query := `
+			SELECT id,scheduled_at,idempotency_key,sender,phone_number,type,status,content,priority FROM pushes
+			WHERE status = $1
+			  AND deleted_at IS NULL
+			  AND scheduled_at < $4
+			  AND id > $2
+			ORDER BY id ASC
+			LIMIT $3
+		`
+
+		logging.DbQueryStart(ctx, query)
+		rows, err := r.pool.Query(ctx, query, notification.Notification_Status_Scheduled, lastID, defaultBatchSize, scheduledAt)
+		logging.DbQueryFinish(ctx)
+		if err != nil {
+			err = fmt.Errorf("getScheduled query: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
+		}
+
+		pushes := make(pushDomain.Pushes, 0, defaultBatchSize)
+		for rows.Next() {
+			var e pushDomain.Push
+			if err = rows.Scan(&e.ID, &e.ScheduledAt, &e.IdempotencyKey, &e.Sender, &e.PhoneNumber, &e.Type, &e.Status, &e.Content, &e.Priority); err != nil {
+				rows.Close()
+				err = fmt.Errorf("getScheduled scan: %w", err)
+				logging.Error(ctx, err)
+				return nil, err
+			}
+			pushes = append(pushes, e)
+		}
+
+		if err = rows.Err(); err != nil {
+			rows.Close()
+			err = fmt.Errorf("getScheduled rows: %w", err)
+			logging.Error(ctx, err)
+			return nil, err
+		}
+
+		rows.Close()
+
+		if len(pushes) == 0 {
+			break
+		}
+
+		totalPushes = append(totalPushes, pushes...)
+		lastID = pushes[len(pushes)-1].ID
+
+		if len(pushes) < defaultBatchSize {
+			break
+		}
+	}
+
+	return totalPushes, nil
+}

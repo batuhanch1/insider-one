@@ -3,11 +3,9 @@ package sms
 import (
 	"context"
 	"fmt"
-	"insider-one/domain/notification"
 	"insider-one/domain/notification/sms"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/logging"
-	"time"
 )
 
 type CreateCommand interface {
@@ -16,24 +14,24 @@ type CreateCommand interface {
 
 type createCommand struct {
 	Repository sms.Repository
-	Publisher  *rabbitmq2.Publisher
+	Publisher  *rabbitmq.Publisher
 }
 
-func NewCreateCommand(repository sms.Repository, publisher *rabbitmq2.Publisher) CreateCommand {
+func NewCreateCommand(repository sms.Repository, publisher *rabbitmq.Publisher) CreateCommand {
 	return &createCommand{repository, publisher}
 }
 
 func (c *createCommand) Execute(ctx context.Context, event sms.CreateSmsEvent) error {
 	s := sms.Sms{
 		ScheduledAt:    event.ScheduledAt,
-		CreatedAt:      time.Now().Unix(),
 		PhoneNumber:    event.PhoneNumber,
 		Sender:         event.Sender,
 		Type:           event.Type,
-		Status:         notification.Notification_Status_Pending,
 		Content:        event.Content,
 		IdempotencyKey: event.IdempotencyKey,
+		Priority:       event.Priority,
 	}
+	s.SetStatus()
 	err := c.Repository.Save(ctx, s)
 	if err != nil {
 		err = fmt.Errorf("error save sms in create command: %w", err)
@@ -46,7 +44,6 @@ func (c *createCommand) Execute(ctx context.Context, event sms.CreateSmsEvent) e
 	}
 
 	smsCreatedEvent := sms.SmsCreatedEvent{
-		ScheduledAt:    s.ScheduledAt,
 		IdempotencyKey: s.IdempotencyKey,
 		PhoneNumber:    s.PhoneNumber,
 		Sender:         s.Sender,
@@ -54,8 +51,8 @@ func (c *createCommand) Execute(ctx context.Context, event sms.CreateSmsEvent) e
 		Status:         s.Status,
 		Content:        s.Content,
 	}
-	err = c.Publisher.Publish(ctx, smsCreatedEvent, rabbitmq2.PublishOptions{
-		Exchange:   rabbitmq2.Exchange_SmsCreated,
+	err = c.Publisher.Publish(ctx, smsCreatedEvent, rabbitmq.PublishOptions{
+		Exchange:   rabbitmq.Exchange_SmsCreated,
 		RoutingKey: event.Priority,
 		Persistent: true,
 	})

@@ -1,5 +1,10 @@
 package sms
 
+import (
+	"insider-one/domain/notification"
+	"time"
+)
+
 type SmsList []Sms
 type Sms struct {
 	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
@@ -13,8 +18,16 @@ type Sms struct {
 	Type           string `json:"type,omitempty"`
 	Status         string `json:"status,omitempty"`
 	Content        string `json:"content,omitempty"`
+	Priority       string `json:"priority,omitempty"`
 }
 
 func (s *Sms) IsScheduled() bool {
-	return s.ScheduledAt > 0
+	return s.ScheduledAt > time.Now().Unix()
+}
+
+func (s *Sms) SetStatus() {
+	s.Status = notification.Notification_Status_Pending
+	if s.IsScheduled() {
+		s.Status = notification.Notification_Status_Scheduled
+	}
 }

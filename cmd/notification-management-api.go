@@ -9,7 +9,7 @@ import (
 	emailQuery "insider-one/application/query/notification/email"
 	pushQuery "insider-one/application/query/notification/push"
 	smsQuery "insider-one/application/query/notification/sms"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
 	emailPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/email"
 	pushPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/push"
@@ -64,19 +64,19 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	}
 	defer pool.Close()
 
-	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		return err
 	}
 	defer rabbitMqClient.Close()
 
-	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	batchPublisherChannel, err := rabbitMqClient.Channel(ctx)
 	if err != nil {
 		return err
 	}
 
-	batchPublisher := rabbitmq2.NewBatchPublisher(batchPublisherChannel)
+	batchPublisher := rabbitmq.NewBatchPublisher(batchPublisherChannel)
 
 	emailRepository := emailPersistence.NewRepository(pool)
 

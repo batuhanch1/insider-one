@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"insider-one/domain/notification"
 	"insider-one/domain/notification/email"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/logging"
 
 	"github.com/cespare/xxhash/v2"
@@ -15,10 +15,10 @@ type SendBatchCommand interface {
 	Execute(ctx context.Context, request SendBatchEmailRequest) error
 }
 type sendBatchCommand struct {
-	BatchPublisher *rabbitmq2.BatchPublisher
+	BatchPublisher *rabbitmq.BatchPublisher
 }
 
-func NewSendBatchCommand(batchPublisher *rabbitmq2.BatchPublisher) SendBatchCommand {
+func NewSendBatchCommand(batchPublisher *rabbitmq.BatchPublisher) SendBatchCommand {
 	return &sendBatchCommand{batchPublisher}
 }
 
@@ -48,17 +48,17 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchEm
 			lowEventList = append(lowEventList, emailEvent)
 		}
 	}
-	if err := s.publishBatch(ctx, highEventList, rabbitmq2.RoutingKey_High); err != nil {
+	if err := s.publishBatch(ctx, highEventList, rabbitmq.RoutingKey_High); err != nil {
 		err = fmt.Errorf("error publishing create high email event in send batch command: %w", err)
 		logging.Error(ctx, err)
 		return err
 	}
-	if err := s.publishBatch(ctx, mediumEventList, rabbitmq2.RoutingKey_Medium); err != nil {
+	if err := s.publishBatch(ctx, mediumEventList, rabbitmq.RoutingKey_Medium); err != nil {
 		err = fmt.Errorf("error publishing create medium email event in send batch command: %w", err)
 		logging.Error(ctx, err)
 		return err
 	}
-	if err := s.publishBatch(ctx, lowEventList, rabbitmq2.RoutingKey_Low); err != nil {
+	if err := s.publishBatch(ctx, lowEventList, rabbitmq.RoutingKey_Low); err != nil {
 		err = fmt.Errorf("error publishing create low email event in send batch command: %w", err)
 		logging.Error(ctx, err)
 		return err
@@ -72,8 +72,8 @@ func (s *sendBatchCommand) publishBatch(ctx context.Context, eventList []email.C
 		result = append(result, v)
 	}
 
-	err := s.BatchPublisher.Publish(ctx, result, rabbitmq2.BatchPublisherOptions{
-		Exchange:   rabbitmq2.Exchange_CreateEmail,
+	err := s.BatchPublisher.Publish(ctx, result, rabbitmq.BatchPublisherOptions{
+		Exchange:   rabbitmq.Exchange_CreateEmail,
 		RoutingKey: routingKey,
 		Persistent: true,
 	})

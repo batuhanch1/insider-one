@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"insider-one/domain/notification/email"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/logging"
 )
 
@@ -14,10 +14,10 @@ type CancelCommand interface {
 
 type cancelCommand struct {
 	EmailRepository email.Repository
-	Publisher       *rabbitmq2.Publisher
+	Publisher       *rabbitmq.Publisher
 }
 
-func NewCancelCommand(emailRepository email.Repository, publisher *rabbitmq2.Publisher) CancelCommand {
+func NewCancelCommand(emailRepository email.Repository, publisher *rabbitmq.Publisher) CancelCommand {
 	return &cancelCommand{emailRepository, publisher}
 }
 
@@ -31,9 +31,9 @@ func (s *cancelCommand) Execute(ctx context.Context, request CancelEmailRequest)
 
 	for _, emailId := range emailIds {
 		cancelEmailEvent := email.CancelEmailEvent{ID: emailId}
-		err = s.Publisher.Publish(ctx, cancelEmailEvent, rabbitmq2.PublishOptions{
-			Exchange:   rabbitmq2.Exchange_CancelEmail,
-			RoutingKey: rabbitmq2.RoutingKey_Asterisk,
+		err = s.Publisher.Publish(ctx, cancelEmailEvent, rabbitmq.PublishOptions{
+			Exchange:   rabbitmq.Exchange_CancelEmail,
+			RoutingKey: rabbitmq.RoutingKey_Asterisk,
 			Persistent: true,
 		})
 		if err != nil {

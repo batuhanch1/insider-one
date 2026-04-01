@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	pushCommand "insider-one/application/command/notification/push"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
 	pushPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/push"
@@ -37,17 +37,17 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rabbitMqClient.Close()
 
-	genericQueueName := fmt.Sprintf(rabbitmq2.Queue_CreatePush_Generic, priority)
-	genericRoutingKey := fmt.Sprintf(rabbitmq2.RoutingKey_Generic, priority)
+	genericQueueName := fmt.Sprintf(rabbitmq.Queue_CreatePush_Generic, priority)
+	genericRoutingKey := fmt.Sprintf(rabbitmq.RoutingKey_Generic, priority)
 
-	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
-		ExchangeName: rabbitmq2.Exchange_CreatePush,
+	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
+		ExchangeName: rabbitmq.Exchange_CreatePush,
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
@@ -58,7 +58,7 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	pushRepository := pushPersistence.NewRepository(pool)
 	pushCreateCommand := pushCommand.NewCreateCommand(pushRepository, publisher)
 	createpushHandler := handler.NewCreatePushHandler(pushCreateCommand)
@@ -73,7 +73,7 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(rabbitMqClient, genericQueueName, createpushHandler.HandleMessage, prometheusWrapper, createPushConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, genericQueueName, createpushHandler.HandleMessage, prometheusWrapper, createPushConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func createPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	return err
 }
 
-func createPushConsumerOptions(o *rabbitmq2.ConsumerOptions) {
+func createPushConsumerOptions(o *rabbitmq.ConsumerOptions) {
 	o.WorkerCount = 10
 	o.PrefetchCount = 10
 	o.MaxRetry = 5

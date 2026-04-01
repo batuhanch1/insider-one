@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	SmsCommand "insider-one/application/command/notification/sms"
-	rabbitmq2 "insider-one/infrastructure/adapters/messaging/rabbitmq"
+	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
 	SmsPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/sms"
@@ -37,16 +37,16 @@ func cancelSmsConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	rabbitMqClient, err := rabbitmq2.New(ctx, cfg)
+	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rabbitMqClient.Close()
 
-	err = rabbitmq2.DeclareTopology(ctx, rabbitMqClient, rabbitmq2.TopologyOptions{
-		ExchangeName: rabbitmq2.Exchange_CancelSms,
-		QueueName:    rabbitmq2.Queue_CancelSms,
-		RoutingKey:   rabbitmq2.RoutingKey_Asterisk,
+	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
+		ExchangeName: rabbitmq.Exchange_CancelSms,
+		QueueName:    rabbitmq.Queue_CancelSms,
+		RoutingKey:   rabbitmq.RoutingKey_Asterisk,
 	})
 
 	pool, err := postgresql.Connect(cfg.DB, ctx)
@@ -55,7 +55,7 @@ func cancelSmsConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq2.NewPublisher(rabbitMqClient)
+	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	smsRepository := SmsPersistence.NewRepository(pool)
 	smsCreateCommand := SmsCommand.NewCreateCommand(smsRepository, publisher)
 	createSmsHandler := handler.NewCreateSmsHandler(smsCreateCommand)
@@ -70,7 +70,7 @@ func cancelSmsConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq2.NewConsumer(rabbitMqClient, rabbitmq2.Queue_CancelSms, createSmsHandler.HandleMessage, prometheusWrapper, cancelSmsConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelSms, createSmsHandler.HandleMessage, prometheusWrapper, cancelSmsConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func cancelSmsConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	return err
 }
 
-func cancelSmsConsumerOptions(o *rabbitmq2.ConsumerOptions) {
+func cancelSmsConsumerOptions(o *rabbitmq.ConsumerOptions) {
 	o.WorkerCount = 10
 	o.PrefetchCount = 10
 	o.MaxRetry = 5

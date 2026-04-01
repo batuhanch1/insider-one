@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"insider-one/domain/notification/push"
-	provider "insider-one/infrastructure/adapters/client/Push-provider"
+	provider "insider-one/infrastructure/adapters/client/push-provider"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/logging"
 )
