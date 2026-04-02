@@ -34,7 +34,9 @@ const docTemplate = `{
                     {
                         "enum": [
                             "PENDING",
-                            "SENT"
+                            "DELIVERED",
+                            "SCHEDULED",
+                            "CANCELLED"
                         ],
                         "type": "string",
                         "description": "Status filter",
@@ -314,7 +316,9 @@ const docTemplate = `{
                     {
                         "enum": [
                             "PENDING",
-                            "SENT"
+                            "DELIVERED",
+                            "SCHEDULED",
+                            "CANCELLED"
                         ],
                         "type": "string",
                         "description": "Status filter",
@@ -594,7 +598,9 @@ const docTemplate = `{
                     {
                         "enum": [
                             "PENDING",
-                            "SENT"
+                            "DELIVERED",
+                            "SCHEDULED",
+                            "CANCELLED"
                         ],
                         "type": "string",
                         "description": "Status filter",
@@ -902,6 +908,9 @@ const docTemplate = `{
                 "message_id": {
                     "type": "string"
                 },
+                "priority": {
+                    "type": "string"
+                },
                 "scheduled_at": {
                     "type": "integer"
                 },
@@ -1194,6 +1203,9 @@ const docTemplate = `{
                 "phone_number": {
                     "type": "string"
                 },
+                "priority": {
+                    "type": "string"
+                },
                 "scheduled_at": {
                     "type": "integer"
                 },
@@ -1472,6 +1484,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "phone_number": {
+                    "type": "string"
+                },
+                "priority": {
                     "type": "string"
                 },
                 "scheduled_at": {

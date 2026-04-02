@@ -38,7 +38,7 @@ func (m *mockEmailRepository) GetByStatus(ctx context.Context, status string) ([
 	return args.Get(0).([]uint64), args.Error(1)
 }
 
-func (m *mockEmailRepository) UpdateStatus(ctx context.Context, ids []uint64) error {
+func (m *mockEmailRepository) Cancel(ctx context.Context, ids []uint64) error {
 	args := m.Called(ctx, ids)
 	return args.Error(0)
 }

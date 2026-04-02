@@ -90,9 +90,9 @@ func setupRouter(ctrl Controller) *gin.Engine {
 }
 
 func newController(
-	sendCmd command.SendCommand,
-	sendBatchCmd command.SendBatchCommand,
-	cancelCmd command.CancelCommand,
+	sendCmd query.SendCommand,
+	sendBatchCmd query.SendBatchCommand,
+	cancelCmd query.CancelCommand,
 	getAllQ query.GetAllQuery,
 	getBatchQ query.GetStatusByBatchIDQuery,
 	getByIDQ query.GetEmailStatusByIDQuery,

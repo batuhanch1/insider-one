@@ -11,10 +11,10 @@ type GetAllQuery interface {
 	Execute(ctx context.Context, request GetAllSmsRequest) (*GetAllSmsResponse, error)
 }
 type getAllQuery struct {
-	SmsRepository sms.Repository
+	SmsRepository sms.QueryRepository
 }
 
-func NewGetAllQuery(SmsRepository sms.Repository) GetAllQuery {
+func NewGetAllQuery(SmsRepository sms.QueryRepository) GetAllQuery {
 	return &getAllQuery{SmsRepository}
 }
 

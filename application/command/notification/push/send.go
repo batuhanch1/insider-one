@@ -33,8 +33,9 @@ func (s *sendCommand) Execute(ctx context.Context, request SendPushRequest) erro
 		Priority:       request.Priority,
 	}
 
-	if request.ScheduledAt != nil {
-		pushEvent.ScheduledAt = request.ScheduledAt.Unix()
+	if !request.ScheduledAt.IsZero() {
+		unix := request.ScheduledAt.Unix()
+		pushEvent.ScheduledAt = &unix
 	}
 
 	err := s.Publisher.Publish(ctx, pushEvent, rabbitmq.PublishOptions{

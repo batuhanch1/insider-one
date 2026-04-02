@@ -279,13 +279,13 @@ The SMS and Push channels expose identical endpoints under `/api/v1/sms/` and `/
 
 **Query parameters**
 
-| Parameter | Type | Required | Values / Constraints |
-|---|---|---|---|
-| `status` | string | yes | `PENDING` \| `SENT` |
-| `page` | int | yes | min 1 |
-| `page_size` | int | yes | 0–50 |
-| `create_date` | RFC3339 | no | start of date range |
-| `end_date` | RFC3339 | no | end of date range |
+| Parameter | Type | Required | Values / Constraints     |
+|---|---|---|--------------------------|
+| `status` | string | yes | `PENDING` \| `DELIVERED` |
+| `page` | int | yes | min 1                    |
+| `page_size` | int | yes | 0–50                     |
+| `create_date` | RFC3339 | no | start of date range      |
+| `end_date` | RFC3339 | no | end of date range        |
 
 **Example:** `GET /api/v1/email/?status=PENDING&page=1&page_size=10`
 
@@ -365,8 +365,9 @@ Timestamps are Unix epoch seconds. Zero value means the field is unset.
 {
   "emails": [
     { "email_id": 42, "status": "PENDING" },
-    { "email_id": 43, "status": "SENT" },
-    { "email_id": 44, "status": "PENDING" }
+    { "email_id": 43, "status": "DELIVERED" },
+    { "email_id": 44, "status": "SCHEDULED" },
+    { "email_id": 44, "status": "CANCELLED" }
   ]
 }
 ```

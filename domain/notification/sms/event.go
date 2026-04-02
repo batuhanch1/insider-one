@@ -1,7 +1,7 @@
 package sms
 
 type CreateSmsEvent struct {
-	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
+	ScheduledAt    *int64 `json:"scheduled_at,omitempty"`
 	IdempotencyKey uint64 `json:"idempotency_key,omitempty"`
 	PhoneNumber    string `json:"phone_number,omitempty"`
 	Sender         string `json:"sender,omitempty"`
@@ -15,7 +15,7 @@ type CancelSmsEvent struct {
 }
 
 type SmsCreatedEvent struct {
-	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
+	ScheduledAt    *int64 `json:"scheduled_at,omitempty"`
 	IdempotencyKey uint64 `json:"idempotency_key,omitempty"`
 	PhoneNumber    string `json:"phone_number,omitempty"`
 	Sender         string `json:"sender,omitempty"`

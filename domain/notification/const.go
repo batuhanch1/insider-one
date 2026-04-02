@@ -4,6 +4,7 @@ const (
 	Notification_Status_Pending   = "PENDING"
 	Notification_Status_Delivered = "DELIVERED"
 	Notification_Status_Scheduled = "SCHEDULED"
+	Notification_Status_Cancel    = "CANCELLED"
 )
 
 const (

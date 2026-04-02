@@ -26,14 +26,24 @@ var pushCreatedConsumerCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	RunE:  pushCreatedConsumerCmdRun,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		priority, _ := cmd.Flags().GetString("priority")
+
+		if !rabbitmq.IsPriorityRoutingKeyValid(priority) {
+			panic("invalid priority")
+		}
+	},
 }
 
 func init() {
+	pushCreatedConsumerCmd.Flags().String("priority", "", "priority (HIGH|MEDIUM|LOW)")
 	rootCmd.AddCommand(pushCreatedConsumerCmd)
 }
 
 func pushCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
+	priority, _ := cmd.Flags().GetString("priority")
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -50,6 +60,7 @@ func pushCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
 		ExchangeName: rabbitmq.Exchange_PushCreated,
+		ExchangeType: "direct",
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
@@ -62,7 +73,7 @@ func pushCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	httpClient := client.NewClient()
-	pushRepository := pushPersistence.NewRepository(pool)
+	pushRepository := pushPersistence.NewCommandRepository(pool)
 	pushProvider := pushProvider.NewPushProvider(httpClient, cfg.PushProvider)
 	pushDeliverCommand := pushCommand.NewDeliverCommand(pushRepository, pushProvider, publisher)
 	pushCreatedHandler := handler.NewPushCreatedHandler(pushDeliverCommand)

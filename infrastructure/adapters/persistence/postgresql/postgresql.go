@@ -44,24 +44,86 @@ func Connect(dbConfig config.DBConfig, ctx context.Context) (*pgxpool.Pool, erro
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	query := `
 CREATE TABLE IF NOT EXISTS emails (
-	id                BIGINT          PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	"to"              VARCHAR(320)    NOT NULL,
-	"from"            VARCHAR(320)    NOT NULL,
-	subject           VARCHAR(998)    NOT NULL,
-	content           TEXT            NOT NULL,
-	status            VARCHAR(20)     NOT NULL DEFAULT 'pending',
-	notification_type VARCHAR(50)     NOT NULL,
-	scheduled_at      TIMESTAMPTZ,
-	sent_at           TIMESTAMPTZ,
-	deleted_at        TIMESTAMPTZ,
-	created_at        TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+	id              BIGINT       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	"to"            VARCHAR(320) NOT NULL,
+	"from"          VARCHAR(320) NOT NULL,
+	subject         VARCHAR(998) NOT NULL,
+	content         TEXT         NOT NULL,
+	status          VARCHAR(20)  NOT NULL,
+	type            VARCHAR(50)  NOT NULL,
+	priority        VARCHAR(10)  NOT NULL,
+	idempotency_key NUMERIC(20,0)       UNIQUE,
+	message_id      VARCHAR(255),
+	scheduled_at    BIGINT,
+	sent_at         BIGINT,
+	deleted_at      BIGINT,
+	created_at      BIGINT  NOT NULL);
 
-	CONSTRAINT chk_to_format CHECK ("to" LIKE '%@%'),
-	CONSTRAINT chk_from_format CHECK ("from" LIKE '%@%')
-);
+CREATE INDEX IF NOT EXISTS idx_emails_status_created_at
+  ON emails(status, created_at DESC)
+  WHERE deleted_at IS NULL;
 
-CREATE INDEX IF NOT EXISTS idx_email_status_created ON email_notifications(status, created_at DESC) WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_email_scheduled_at ON email_notifications(scheduled_at) WHERE status = 'pending' AND scheduled_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_emails_status_id
+  ON emails(status, id ASC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_emails_scheduled_at
+  ON emails(scheduled_at ASC)
+  WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS pushes (
+	id              BIGINT       PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	phone_number    VARCHAR(20)  NOT NULL,
+	sender          VARCHAR(100) NOT NULL,
+	content         TEXT         NOT NULL,
+	status          VARCHAR(20)  NOT NULL,
+	type            VARCHAR(50)  NOT NULL,
+	priority        VARCHAR(10)  NOT NULL,
+	idempotency_key NUMERIC(20,0)       UNIQUE,
+	message_id      VARCHAR(255),
+	scheduled_at    BIGINT,
+	sent_at         BIGINT,
+	deleted_at      BIGINT,
+	created_at      BIGINT  NOT NULL);
+
+CREATE INDEX IF NOT EXISTS idx_pushes_status_created_at
+  ON pushes(status, created_at DESC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_pushes_status_id
+  ON pushes(status, id ASC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_pushes_scheduled_at
+  ON pushes(scheduled_at ASC)
+  WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS sms (
+	id              BIGINT      PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	phone_number    VARCHAR(20) NOT NULL,
+	sender          VARCHAR(11) NOT NULL,
+	content         TEXT        NOT NULL,
+	status          VARCHAR(20) NOT NULL,
+	type            VARCHAR(50) NOT NULL,
+	priority        VARCHAR(10) NOT NULL,
+	idempotency_key NUMERIC(20,0)      UNIQUE,
+	message_id      VARCHAR(255),
+	scheduled_at    BIGINT,
+	sent_at         BIGINT,
+	deleted_at      BIGINT,
+	created_at      BIGINT NOT NULL);
+
+CREATE INDEX IF NOT EXISTS idx_sms_status_created_at
+  ON sms(status, created_at DESC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_sms_status_id
+  ON sms(status, id ASC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_sms_scheduled_at
+  ON sms(scheduled_at ASC)
+  WHERE deleted_at IS NULL;
 `
 	if _, err := pool.Exec(ctx, query); err != nil {
 		err = fmt.Errorf("migration error: %w", err)

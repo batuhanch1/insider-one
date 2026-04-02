@@ -29,7 +29,7 @@ func Recovery() gin.HandlerFunc {
 					logging.Error(ctx, err)
 					ginContext.JSON(http.StatusInternalServerError, gin.H{
 						"success": false,
-						"message": err,
+						"message": err.Error(),
 					})
 				}
 			}

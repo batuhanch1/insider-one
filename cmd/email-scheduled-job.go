@@ -30,6 +30,7 @@ func init() {
 
 func emailScheduledJobCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -47,7 +48,7 @@ func emailScheduledJobCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	emailRepository := email.NewRepository(pool)
+	emailRepository := email.NewQueryRepository(pool)
 	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	scheduleCommand := emailCommand.NewScheduleCommand(emailRepository, publisher)
 

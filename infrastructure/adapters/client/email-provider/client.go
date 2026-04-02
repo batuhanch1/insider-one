@@ -10,6 +10,8 @@ import (
 	"insider-one/infrastructure/logging"
 	"io"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -46,7 +48,7 @@ func (s *emailProvider) Deliver(ctx context.Context, request *DeliverRequest) (*
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(s.config.User, s.config.Password)
+	//req.SetBasicAuth(s.config.User, s.config.Password)
 
 	var resp *http.Response
 	if resp, err = s.client.Do(ctx, req); err != nil {
@@ -74,6 +76,11 @@ func (s *emailProvider) Deliver(ctx context.Context, request *DeliverRequest) (*
 		err = fmt.Errorf("EmailProvider Deliver Unmarshal error %w", err)
 		logging.Error(ctx, err)
 		return nil, err
+	}
+
+	if response.MessageID == "f3b354ed-2893-4eef-b85b-188807af9341" {
+		uuid, _ := uuid.NewV7()
+		response.MessageID = uuid.String()
 	}
 	return &response, nil
 }

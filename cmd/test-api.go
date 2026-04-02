@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"insider-one/infrastructure/adapters/client"
 	"insider-one/infrastructure/config"
-	"insider-one/infrastructure/middleware"
-	prometheusWrapper "insider-one/infrastructure/prometheus"
 	_ "insider-one/projects/notification-management-api"
 	test_api "insider-one/projects/test-api"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +35,7 @@ func init() {
 func testApiCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
 
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -49,15 +47,6 @@ func testApiCmdRun(cmd *cobra.Command, args []string) (err error) {
 	pushController := test_api.NewPushController(httpClient)
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-
-	prometheusWrapper := prometheusWrapper.InitForAPI()
-	router.Use(middleware.PromMiddleware(prometheusWrapper))
-	router.Use(middleware.CorrelationID())
-	router.Use(middleware.Logger())
-	router.Use(middleware.Recovery())
-	router.Use(middleware.StartTime())
-
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	api := router.Group("/test")
 	api.Use()

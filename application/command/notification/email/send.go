@@ -34,8 +34,9 @@ func (s *sendCommand) Execute(ctx context.Context, request SendEmailRequest) err
 		Priority:       request.Priority,
 	}
 
-	if request.ScheduledAt != nil {
-		emailEvent.ScheduledAt = request.ScheduledAt.Unix()
+	if !request.ScheduledAt.IsZero() {
+		unix := request.ScheduledAt.Unix()
+		emailEvent.ScheduledAt = &unix
 	}
 
 	err := s.Publisher.Publish(ctx, emailEvent, rabbitmq.PublishOptions{
@@ -44,7 +45,7 @@ func (s *sendCommand) Execute(ctx context.Context, request SendEmailRequest) err
 		Persistent: true,
 	})
 	if err != nil {
-		err = fmt.Errorf("error publishing create email event in send command: %w", err)
+		err = fmt.Errorf("error publishing create email event in send Command: %w", err)
 		logging.Error(ctx, err)
 		return err
 	}

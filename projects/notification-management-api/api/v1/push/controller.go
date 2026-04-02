@@ -22,13 +22,13 @@ type Controller interface {
 type controller struct {
 	SendCommand             push.SendCommand
 	SendBatchCommand        push.SendBatchCommand
-	CancelCommand           push.CancelCommand
+	CancelCommand           push.EnqueueCancelCommand
 	GetAllQuery             query.GetAllQuery
 	GetStatusByBatchIDQuery query.GetStatusByBatchIDQuery
 	GetStatusByIDQuery      query.GetPushStatusByIDQuery
 }
 
-func NewController(sendCommand push.SendCommand, sendBatchCommand push.SendBatchCommand, cancelCommand push.CancelCommand, getAllQuery query.GetAllQuery, getStatusByBatchIDQuery query.GetStatusByBatchIDQuery, getPushStatusByIDQuery query.GetPushStatusByIDQuery) Controller {
+func NewController(sendCommand push.SendCommand, sendBatchCommand push.SendBatchCommand, cancelCommand push.EnqueueCancelCommand, getAllQuery query.GetAllQuery, getStatusByBatchIDQuery query.GetStatusByBatchIDQuery, getPushStatusByIDQuery query.GetPushStatusByIDQuery) Controller {
 	return &controller{sendCommand, sendBatchCommand, cancelCommand, getAllQuery, getStatusByBatchIDQuery, getPushStatusByIDQuery}
 }
 
@@ -126,7 +126,7 @@ func (c *controller) Send(g *gin.Context) {
 // @Description  List push notifications with optional date and status filters
 // @Tags         push
 // @Produce      json
-// @Param        status       query  string  true   "Status filter"        Enums(PENDING, SENT)
+// @Param        status       query  string  true   "Status filter"        Enums(PENDING, DELIVERED, SCHEDULED, CANCELLED)
 // @Param        page         query  int     true   "Page number"          minimum(1)
 // @Param        page_size    query  int     true   "Page size"            minimum(0)  maximum(50)
 // @Param        create_date  query  string  false  "Start date (RFC3339)"

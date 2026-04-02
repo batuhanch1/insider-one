@@ -22,13 +22,13 @@ type Controller interface {
 type controller struct {
 	SendCommand             sms.SendCommand
 	SendBatchCommand        sms.SendBatchCommand
-	CancelCommand           sms.CancelCommand
+	CancelCommand           sms.EnqueueCancelCommand
 	GetAllQuery             query.GetAllQuery
 	GetStatusByBatchIDQuery query.GetStatusByBatchIDQuery
 	GetStatusByIDQuery      query.GetSmsStatusByIDQuery
 }
 
-func NewController(sendCommand sms.SendCommand, sendBatchCommand sms.SendBatchCommand, cancelCommand sms.CancelCommand, getAllQuery query.GetAllQuery, getStatusByBatchIDQuery query.GetStatusByBatchIDQuery, getSmsStatusByIDQuery query.GetSmsStatusByIDQuery) Controller {
+func NewController(sendCommand sms.SendCommand, sendBatchCommand sms.SendBatchCommand, cancelCommand sms.EnqueueCancelCommand, getAllQuery query.GetAllQuery, getStatusByBatchIDQuery query.GetStatusByBatchIDQuery, getSmsStatusByIDQuery query.GetSmsStatusByIDQuery) Controller {
 	return &controller{sendCommand, sendBatchCommand, cancelCommand, getAllQuery, getStatusByBatchIDQuery, getSmsStatusByIDQuery}
 }
 
@@ -126,7 +126,7 @@ func (c *controller) Send(g *gin.Context) {
 // @Description  List SMS notifications with optional date and status filters
 // @Tags         sms
 // @Produce      json
-// @Param        status       query  string  true   "Status filter"        Enums(PENDING, SENT)
+// @Param        status       query  string  true   "Status filter"        Enums(PENDING, DELIVERED, SCHEDULED, CANCELLED)
 // @Param        page         query  int     true   "Page number"          minimum(1)
 // @Param        page_size    query  int     true   "Page size"            minimum(0)  maximum(50)
 // @Param        create_date  query  string  false  "Start date (RFC3339)"

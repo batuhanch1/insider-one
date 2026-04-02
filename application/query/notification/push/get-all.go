@@ -11,10 +11,10 @@ type GetAllQuery interface {
 	Execute(ctx context.Context, request GetAllPushRequest) (*GetAllPushResponse, error)
 }
 type getAllQuery struct {
-	pushRepository push.Repository
+	pushRepository push.QueryRepository
 }
 
-func NewGetAllQuery(pushRepository push.Repository) GetAllQuery {
+func NewGetAllQuery(pushRepository push.QueryRepository) GetAllQuery {
 	return &getAllQuery{pushRepository}
 }
 

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -31,15 +30,6 @@ func Execute() {
 	}
 }
 
-var (
-	env      string
-	priority string
-)
-
 func init() {
-	rootCmd.PersistentFlags().StringVar(&env, "env", "qa", "environment (qa|prod)")
-	rootCmd.PersistentFlags().StringVar(&priority, "priority", "*", "priority (high|medium|low)")
-	if !rabbitmq.IsPriorityRoutingKeyValid(priority) {
-		panic("invalid priority")
-	}
+	rootCmd.PersistentFlags().String("env", "qa", "environment (qa|prod)")
 }

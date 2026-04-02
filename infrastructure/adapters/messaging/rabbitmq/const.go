@@ -31,17 +31,13 @@ const (
 
 const (
 	RoutingKey_Asterisk = "*"
-	RoutingKey_High     = "high"
-	RoutingKey_Medium   = "medium"
-	RoutingKey_Low      = "low"
+	RoutingKey_High     = "HIGH"
+	RoutingKey_Medium   = "MEDIUM"
+	RoutingKey_Low      = "LOW"
 	RoutingKey_Generic  = "%s"
 )
 
 func IsPriorityRoutingKeyValid(key string) bool {
-	if key == RoutingKey_Asterisk {
-		return true
-	}
-
 	switch key {
 	case RoutingKey_High:
 		return true

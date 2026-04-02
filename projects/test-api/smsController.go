@@ -2,6 +2,7 @@ package test_api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"insider-one/application/command/notification/sms"
@@ -43,7 +44,7 @@ func (c *smsController) Cancel(g *gin.Context) {
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
 
-	req, err := http.NewRequest(http.MethodPut, "localhost:8080/api/v1/sms/cancel", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest(http.MethodPut, "http://localhost:8080/api/v1/sms/cancel", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		err = fmt.Errorf("sms test Cancel NewRequest error %w", err)
 		logging.Error(ctx, err)
@@ -51,7 +52,7 @@ func (c *smsController) Cancel(g *gin.Context) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", "admin123")
+	req.SetBasicAuth("admin", "1234")
 
 	var resp *http.Response
 	if resp, err = c.client.Do(ctx, req); err != nil {
@@ -61,41 +62,44 @@ func (c *smsController) Cancel(g *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("sms bad response: %d", resp.StatusCode)
 		logging.Error(ctx, err)
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
-	return
+	g.JSON(http.StatusOK, nil)
 }
 
 func (c *smsController) SendBatch(g *gin.Context) {
+	ctx, cancel := context.WithTimeout(g.Copy(), time.Minute*5)
+	defer cancel()
 	for j := 0; j < 1000; j++ {
 		var request sms.SendBatchSmsRequest
 		for i := 0; i < 1000; i++ {
-			e := sms.SendBatchSms{
+			s := sms.SendBatchSms{
 				PhoneNumber: generatePhone(),
-				Sender:      fmt.Sprintf("TESTSENDER_%d", i),
+				Sender:      fmt.Sprintf("SENDER_%d", i),
 				Type:        "test_sms_type",
 				Content:     fmt.Sprintf("Content Batch %d_%d", i, j),
 			}
 			n := rand.Intn(100)
 			if n > 50 {
 				nextTime := time.Now().Add(time.Hour * 1)
-				e.ScheduledAt = &nextTime
+				s.ScheduledAt = nextTime
 			}
 			p := rand.Intn(3)
 			switch p {
 			case 1:
-				e.Priority = notification.Notification_Priority_High
+				s.Priority = notification.Notification_Priority_High
 			case 2:
-				e.Priority = notification.Notification_Priority_Low
+				s.Priority = notification.Notification_Priority_Low
 			case 3:
-				e.Priority = notification.Notification_Priority_Medium
+				s.Priority = notification.Notification_Priority_Medium
+			default:
+				s.Priority = notification.Notification_Priority_Medium
 			}
-			request.Sms = append(request.Sms, e)
+			request.Sms = append(request.Sms, s)
 		}
-		ctx := g.Copy()
 		bodyBytes, err := json.Marshal(request)
 		if err != nil {
 			err = fmt.Errorf("sms test SendBatch Marshal error %w", err)
@@ -103,7 +107,7 @@ func (c *smsController) SendBatch(g *gin.Context) {
 			g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 		}
 
-		req, err := http.NewRequest(http.MethodPost, "localhost:8080/api/v1/sms/batch", bytes.NewBuffer(bodyBytes))
+		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/v1/sms/batch", bytes.NewBuffer(bodyBytes))
 		if err != nil {
 			err = fmt.Errorf("sms test SendBatch NewRequest error %w", err)
 			logging.Error(ctx, err)
@@ -111,7 +115,7 @@ func (c *smsController) SendBatch(g *gin.Context) {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.SetBasicAuth("admin", "admin123")
+		req.SetBasicAuth("admin", "1234")
 
 		var resp *http.Response
 		if resp, err = c.client.Do(ctx, req); err != nil {
@@ -121,19 +125,19 @@ func (c *smsController) SendBatch(g *gin.Context) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusAccepted {
+		if resp.StatusCode != http.StatusOK {
 			err = fmt.Errorf("sms bad response: %d", resp.StatusCode)
 			logging.Error(ctx, err)
 			g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 		}
-		g.JSON(http.StatusOK, errorHandling.Error(ctx, err))
 	}
+	g.JSON(http.StatusOK, nil)
 }
 
 func (c *smsController) Send(g *gin.Context) {
 	id, _ := uuid.NewV7()
 	var request = sms.SendSmsRequest{
-		Sender:      fmt.Sprintf("TESTSENDER_%d", id.String()),
+		Sender:      "SENDER",
 		PhoneNumber: generatePhone(),
 		Type:        "test_push_type",
 		Content:     fmt.Sprintf("Content Batch %d", id.String()),
@@ -142,7 +146,7 @@ func (c *smsController) Send(g *gin.Context) {
 	n := rand.Intn(100)
 	if n > 50 {
 		nextTime := time.Now().Add(time.Hour * 1)
-		request.ScheduledAt = &nextTime
+		request.ScheduledAt = nextTime
 	}
 	p := rand.Intn(3)
 	switch p {
@@ -152,6 +156,8 @@ func (c *smsController) Send(g *gin.Context) {
 		request.Priority = notification.Notification_Priority_Low
 	case 3:
 		request.Priority = notification.Notification_Priority_Medium
+	default:
+		request.Priority = notification.Notification_Priority_High
 	}
 
 	ctx := g.Copy()
@@ -162,7 +168,7 @@ func (c *smsController) Send(g *gin.Context) {
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
 
-	req, err := http.NewRequest(http.MethodPost, "localhost:8080/api/v1/sms", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/v1/sms", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		err = fmt.Errorf("sms test Send NewRequest error %w", err)
 		logging.Error(ctx, err)
@@ -170,7 +176,7 @@ func (c *smsController) Send(g *gin.Context) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", "admin123")
+	req.SetBasicAuth("admin", "1234")
 
 	var resp *http.Response
 	if resp, err = c.client.Do(ctx, req); err != nil {
@@ -180,10 +186,10 @@ func (c *smsController) Send(g *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("sms  bad response: %d", resp.StatusCode)
 		logging.Error(ctx, err)
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
-	g.JSON(http.StatusOK, errorHandling.Error(ctx, err))
+	g.JSON(http.StatusOK, nil)
 }

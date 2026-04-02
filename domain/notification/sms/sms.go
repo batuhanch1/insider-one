@@ -7,9 +7,9 @@ import (
 
 type SmsList []Sms
 type Sms struct {
-	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
-	SentAt         int64  `json:"sent_at,omitempty"`
-	DeletedAt      int64  `json:"deleted_at,omitempty"`
+	ScheduledAt    *int64 `json:"scheduled_at,omitempty"`
+	SentAt         *int64 `json:"sent_at,omitempty"`
+	DeletedAt      *int64 `json:"deleted_at,omitempty"`
 	CreatedAt      int64  `json:"created_at,omitempty"`
 	ID             uint64 `json:"id,omitempty"`
 	IdempotencyKey uint64 `json:"idempotency_key,omitempty"`
@@ -22,7 +22,7 @@ type Sms struct {
 }
 
 func (s *Sms) IsScheduled() bool {
-	return s.ScheduledAt > time.Now().Unix()
+	return s.ScheduledAt != nil && *s.ScheduledAt > time.Now().Unix()
 }
 
 func (s *Sms) SetStatus() {

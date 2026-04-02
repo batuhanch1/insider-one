@@ -8,7 +8,7 @@ import (
 	"insider-one/infrastructure/adapters/messaging/rabbitmq"
 	"insider-one/infrastructure/adapters/messaging/rabbitmq/handler"
 	"insider-one/infrastructure/adapters/persistence/postgresql"
-	emailPersistence "insider-one/infrastructure/adapters/persistence/postgresql/notification/email"
+	"insider-one/infrastructure/adapters/persistence/postgresql/notification/email"
 	"insider-one/infrastructure/config"
 	"insider-one/infrastructure/logging"
 	prometheusWrapper "insider-one/infrastructure/prometheus"
@@ -33,6 +33,7 @@ func init() {
 func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
 
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -56,10 +57,9 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq.NewPublisher(rabbitMqClient)
-	emailRepository := emailPersistence.NewRepository(pool)
-	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, publisher)
-	createEmailHandler := handler.NewCreateEmailHandler(emailCreateCommand)
+	commandRepository := email.NewCommandRepository(pool)
+	cancelCommand := emailCommand.NewCancelCommand(commandRepository)
+	cancelEmailHandler := handler.NewCancelEmailHandler(cancelCommand)
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
 
 	go func(port int) {
@@ -70,7 +70,7 @@ func cancelEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelEmail, createEmailHandler.HandleMessage, prometheusWrapper, cancelEmailConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelEmail, cancelEmailHandler.HandleMessage, prometheusWrapper, cancelEmailConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

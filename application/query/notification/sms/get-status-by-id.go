@@ -12,10 +12,10 @@ type GetSmsStatusByIDQuery interface {
 }
 
 type getSmsStatusByIDQuery struct {
-	smsRepository sms.Repository
+	smsRepository sms.QueryRepository
 }
 
-func NewGetStatusByIDQuery(smsRepository sms.Repository) GetSmsStatusByIDQuery {
+func NewGetStatusByIDQuery(smsRepository sms.QueryRepository) GetSmsStatusByIDQuery {
 	return &getSmsStatusByIDQuery{smsRepository}
 }
 

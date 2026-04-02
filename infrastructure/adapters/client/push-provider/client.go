@@ -10,6 +10,8 @@ import (
 	"insider-one/infrastructure/logging"
 	"io"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -74,6 +76,11 @@ func (s *pushProvider) Deliver(ctx context.Context, request *DeliverRequest) (*D
 		err = fmt.Errorf("PushProvider Deliver Unmarshal error %w", err)
 		logging.Error(ctx, err)
 		return nil, err
+	}
+
+	if response.MessageID == "f3b354ed-2893-4eef-b85b-188807af9341" {
+		uuid, _ := uuid.NewV7()
+		response.MessageID = uuid.String()
 	}
 	return &response, nil
 }

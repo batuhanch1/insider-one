@@ -1,13 +1,11 @@
-package push
+package sms
 
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"insider-one/domain/notification"
-	PushDomain "insider-one/domain/notification/push"
-	pushDomain "insider-one/domain/notification/push"
+	smsDomain "insider-one/domain/notification/sms"
 	"insider-one/infrastructure/logging"
 	"strings"
 	"time"
@@ -17,53 +15,12 @@ import (
 
 const defaultBatchSize = 100
 
-type repository struct {
+type queryRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewRepository(pool *pgxpool.Pool) pushDomain.Repository {
-	return &repository{pool}
-}
-
-func (r *repository) Save(ctx context.Context, push pushDomain.Push) error {
-	query := `
-INSERT INTO pushes (
-    phone_number,
-    sender,
-    content,
-    status,
-    type,
-    scheduled_at,
-    sent_at,
-    deleted_at,
-    created_at,
-    idempotency_key
-)
-VALUES (
-    $1,  -- phone_number
-    $2,  -- sender
-    $3,  -- content
-    $4,  -- status
-    $5,  -- type
-    $6,  -- scheduled_at (nullable)
-    $7,  -- sent_at (nullable)
-    $8,  -- deleted_at (nullable)
-    NOW(),
-    $9   -- idempotency_key
-) ON CONFLICT DO NOTHING;`
-
-	logging.DbQueryStart(ctx, query)
-	result, err := r.pool.Exec(ctx, query, push.PhoneNumber, push.Sender, push.Content, push.Status, push.Type, push.ScheduledAt, push.SentAt, push.DeletedAt, push.IdempotencyKey)
-	logging.DbQueryFinish(ctx)
-	if err != nil {
-		err = fmt.Errorf("save error: %w", err)
-		logging.Error(ctx, err)
-		return err
-	}
-	if result.RowsAffected() == 0 {
-		logging.Error(ctx, errors.New("rowsAffected is zero. save error"))
-	}
-	return nil
+func NewQueryRepository(pool *pgxpool.Pool) smsDomain.QueryRepository {
+	return &queryRepository{pool}
 }
 
 func buildFilter(status string, startDate, endDate *time.Time, page, pageSize int) (string, []any, int, int) {
@@ -95,7 +52,7 @@ func buildFilter(status string, startDate, endDate *time.Time, page, pageSize in
 	return where, args, argIdx, offset
 }
 
-func (r *repository) List(ctx context.Context, status string, startDate, endDate *time.Time, page, pageSize int) (pushDomain.Pushes, error) {
+func (r *queryRepository) List(ctx context.Context, status string, startDate, endDate *time.Time, page, pageSize int) (smsDomain.SmsList, error) {
 	where, args, argIdx, offset := buildFilter(status, startDate, endDate, page, pageSize)
 
 	query := fmt.Sprintf(`
@@ -111,7 +68,7 @@ func (r *repository) List(ctx context.Context, status string, startDate, endDate
 			deleted_at,
 			created_at,
 			idempotency_key
-        FROM pushes
+        FROM sms
         %s
         ORDER BY created_at DESC
         LIMIT $%d OFFSET $%d
@@ -123,70 +80,66 @@ func (r *repository) List(ctx context.Context, status string, startDate, endDate
 	rows, err := r.pool.Query(ctx, query, args...)
 	logging.DbQueryFinish(ctx)
 	if err != nil {
-		err = fmt.Errorf("list push query error: %w", err)
+		err = fmt.Errorf("list sms query error: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	var pushes pushDomain.Pushes
+	var SmsList smsDomain.SmsList
 	for rows.Next() {
-		var push PushDomain.Push
-		var scheduledAt, sentAt, deletedAt sql.NullTime
+		var sms smsDomain.Sms
+		var scheduledAt, sentAt, deletedAt sql.NullInt64
 
 		err = rows.Scan(
-			&push.ID,
-			&push.PhoneNumber,
-			&push.Sender,
-			&push.Content,
-			&push.Status,
-			&push.Type,
+			&sms.ID,
+			&sms.PhoneNumber,
+			&sms.Sender,
+			&sms.Content,
+			&sms.Status,
+			&sms.Type,
 			&scheduledAt,
 			&sentAt,
 			&deletedAt,
-			&push.CreatedAt,
-			&push.IdempotencyKey,
+			&sms.CreatedAt,
+			&sms.IdempotencyKey,
 		)
 		if err != nil {
-			err = fmt.Errorf("list push scan error: %w", err)
+			err = fmt.Errorf("list sms scan error: %w", err)
 			logging.Error(ctx, err)
 			return nil, err
 		}
 
 		if scheduledAt.Valid {
-			push.ScheduledAt = scheduledAt.Time.Unix()
+			sms.ScheduledAt = &scheduledAt.Int64
 		}
 		if sentAt.Valid {
-			push.SentAt = sentAt.Time.Unix()
+			sms.SentAt = &sentAt.Int64
 		}
 		if deletedAt.Valid {
-			push.DeletedAt = deletedAt.Time.Unix()
+			sms.DeletedAt = &deletedAt.Int64
 		}
 
-		pushes = append(pushes, push)
+		SmsList = append(SmsList, sms)
 	}
 
 	if err = rows.Err(); err != nil {
-		err = fmt.Errorf("list push rows error: %w", err)
+		err = fmt.Errorf("list sms rows error: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
 	}
-	return pushes, nil
+	return SmsList, nil
 }
 
-func (r *repository) ListCount(ctx context.Context, status string, startDate, endDate *time.Time, page, pageSize int) (int, error) {
-	where, args, argIdx, offset := buildFilter(status, startDate, endDate, page, pageSize)
+func (r *queryRepository) ListCount(ctx context.Context, status string, startDate, endDate *time.Time, page, pageSize int) (int, error) {
+	where, args, _, _ := buildFilter(status, startDate, endDate, page, pageSize)
 
 	query := fmt.Sprintf(`
         SELECT
             count(1) as totalCount
-        FROM pushes
+        FROM sms
         %s
-        ORDER BY created_at DESC
-        LIMIT $%d OFFSET $%d
-    `, where, argIdx, argIdx+1)
-
-	args = append(args, pageSize, offset)
+    `, where)
 
 	var totalCount int
 	logging.DbQueryStart(ctx, query)
@@ -200,20 +153,19 @@ func (r *repository) ListCount(ctx context.Context, status string, startDate, en
 	return totalCount, nil
 }
 
-func (r *repository) GetByStatus(ctx context.Context, status string) ([]uint64, error) {
+func (r *queryRepository) GetByStatus(ctx context.Context, status string) ([]uint64, error) {
 	var lastID uint64 = 0
 	var totalIDs []uint64
 
-	for {
-		query := `
-			SELECT id FROM pushes
+	query := `
+			SELECT id FROM sms
 			WHERE status = $1
 			  AND deleted_at IS NULL
 			  AND id > $2
 			ORDER BY id ASC
 			LIMIT $3
 		`
-
+	for {
 		logging.DbQueryStart(ctx, query)
 		rows, err := r.pool.Query(ctx, query, status, lastID, defaultBatchSize)
 		logging.DbQueryFinish(ctx)
@@ -259,44 +211,19 @@ func (r *repository) GetByStatus(ctx context.Context, status string) ([]uint64, 
 	return totalIDs, nil
 }
 
-func (r *repository) UpdateStatus(ctx context.Context, ids []uint64) error {
-	query := `
-        UPDATE pushes
-        SET status = $1
-        WHERE id = ANY($2)
-          AND deleted_at IS NULL
-        RETURNING id
-    `
-
-	logging.DbQueryStart(ctx, query)
-	result, err := r.pool.Exec(ctx, query, notification.Notification_Status_Pending, ids)
-	logging.DbQueryFinish(ctx)
-	if err != nil {
-		err = fmt.Errorf("update status query: %w", err)
-		logging.Error(ctx, err)
-		return err
-	}
-	if result.RowsAffected() == 0 {
-		logging.Error(ctx, errors.New("no row updated"))
-	}
-
-	return nil
-}
-
-func (r *repository) GetStatusByID(ctx context.Context, ids []uint64) (pushDomain.Pushes, error) {
+func (r *queryRepository) GetStatusByID(ctx context.Context, ids []uint64) (smsDomain.SmsList, error) {
 	var lastID uint64 = 0
-	var totalpushes pushDomain.Pushes
+	var totalSmsList smsDomain.SmsList
 
-	for {
-		query := `
-			SELECT id, status FROM pushes
+	query := `
+			SELECT id, status FROM sms
 			WHERE id = ANY($1)
 			  AND deleted_at IS NULL
 			  AND id > $2
 			ORDER BY id ASC
 			LIMIT $3
 		`
-
+	for {
 		logging.DbQueryStart(ctx, query)
 		rows, err := r.pool.Query(ctx, query, ids, lastID, defaultBatchSize)
 		logging.DbQueryFinish(ctx)
@@ -306,16 +233,16 @@ func (r *repository) GetStatusByID(ctx context.Context, ids []uint64) (pushDomai
 			return nil, err
 		}
 
-		batch := make(pushDomain.Pushes, 0, defaultBatchSize)
+		batch := make(smsDomain.SmsList, 0, defaultBatchSize)
 		for rows.Next() {
-			var Push PushDomain.Push
-			if err = rows.Scan(&Push.ID, &Push.Status); err != nil {
+			var sms smsDomain.Sms
+			if err = rows.Scan(&sms.ID, &sms.Status); err != nil {
 				rows.Close()
 				err = fmt.Errorf("getStatusByID scan: %w", err)
 				logging.Error(ctx, err)
 				return nil, err
 			}
-			batch = append(batch, Push)
+			batch = append(batch, sms)
 		}
 
 		if err = rows.Err(); err != nil {
@@ -331,7 +258,7 @@ func (r *repository) GetStatusByID(ctx context.Context, ids []uint64) (pushDomai
 			break
 		}
 
-		totalpushes = append(totalpushes, batch...)
+		totalSmsList = append(totalSmsList, batch...)
 		lastID = batch[len(batch)-1].ID
 
 		if len(batch) < defaultBatchSize {
@@ -339,39 +266,15 @@ func (r *repository) GetStatusByID(ctx context.Context, ids []uint64) (pushDomai
 		}
 	}
 
-	return totalpushes, nil
+	return totalSmsList, nil
 }
 
-func (r *repository) Deliver(ctx context.Context, messageId string, idempotencyKey uint64) error {
-	query := `
-        UPDATE emails
-        SET status = $1
-        AND message_id = $3
-        WHERE id = $2
-          AND deleted_at IS NULL;`
-
-	logging.DbQueryStart(ctx, query)
-	result, err := r.pool.Exec(ctx, query, notification.Notification_Status_Delivered, idempotencyKey, messageId)
-	logging.DbQueryFinish(ctx)
-	if err != nil {
-		err = fmt.Errorf("deliver query: %w", err)
-		logging.Error(ctx, err)
-		return err
-	}
-	if result.RowsAffected() == 0 {
-		logging.Error(ctx, errors.New("no row updated"))
-	}
-
-	return nil
-}
-
-func (r *repository) GetScheduled(ctx context.Context, scheduledAt int64) (pushDomain.Pushes, error) {
+func (r *queryRepository) GetScheduled(ctx context.Context, scheduledAt int64) (smsDomain.SmsList, error) {
 	var lastID uint64 = 0
-	var totalPushes pushDomain.Pushes
+	var totalSmsList smsDomain.SmsList
 
-	for {
-		query := `
-			SELECT id,scheduled_at,idempotency_key,sender,phone_number,type,status,content,priority FROM pushes
+	query := `
+			SELECT id,scheduled_at,idempotency_key,phone_number,sender,type,status,content,priority FROM sms
 			WHERE status = $1
 			  AND deleted_at IS NULL
 			  AND scheduled_at < $4
@@ -379,7 +282,7 @@ func (r *repository) GetScheduled(ctx context.Context, scheduledAt int64) (pushD
 			ORDER BY id ASC
 			LIMIT $3
 		`
-
+	for {
 		logging.DbQueryStart(ctx, query)
 		rows, err := r.pool.Query(ctx, query, notification.Notification_Status_Scheduled, lastID, defaultBatchSize, scheduledAt)
 		logging.DbQueryFinish(ctx)
@@ -389,16 +292,16 @@ func (r *repository) GetScheduled(ctx context.Context, scheduledAt int64) (pushD
 			return nil, err
 		}
 
-		pushes := make(pushDomain.Pushes, 0, defaultBatchSize)
+		smsList := make(smsDomain.SmsList, 0, defaultBatchSize)
 		for rows.Next() {
-			var e pushDomain.Push
-			if err = rows.Scan(&e.ID, &e.ScheduledAt, &e.IdempotencyKey, &e.Sender, &e.PhoneNumber, &e.Type, &e.Status, &e.Content, &e.Priority); err != nil {
+			var e smsDomain.Sms
+			if err = rows.Scan(&e.ID, &e.ScheduledAt, &e.IdempotencyKey, &e.PhoneNumber, &e.Sender, &e.Type, &e.Status, &e.Content, &e.Priority); err != nil {
 				rows.Close()
 				err = fmt.Errorf("getScheduled scan: %w", err)
 				logging.Error(ctx, err)
 				return nil, err
 			}
-			pushes = append(pushes, e)
+			smsList = append(smsList, e)
 		}
 
 		if err = rows.Err(); err != nil {
@@ -410,17 +313,17 @@ func (r *repository) GetScheduled(ctx context.Context, scheduledAt int64) (pushD
 
 		rows.Close()
 
-		if len(pushes) == 0 {
+		if len(smsList) == 0 {
 			break
 		}
 
-		totalPushes = append(totalPushes, pushes...)
-		lastID = pushes[len(pushes)-1].ID
+		totalSmsList = append(totalSmsList, smsList...)
+		lastID = smsList[len(smsList)-1].ID
 
-		if len(pushes) < defaultBatchSize {
+		if len(smsList) < defaultBatchSize {
 			break
 		}
 	}
 
-	return totalPushes, nil
+	return totalSmsList, nil
 }

@@ -32,6 +32,7 @@ func init() {
 
 func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -55,10 +56,9 @@ func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	}
 	defer pool.Close()
 
-	publisher := rabbitmq.NewPublisher(rabbitMqClient)
-	pushRepository := pushPersistence.NewRepository(pool)
-	pushCreateCommand := pushCommand.NewCreateCommand(pushRepository, publisher)
-	createpushHandler := handler.NewCreatePushHandler(pushCreateCommand)
+	pushCommandRepository := pushPersistence.NewCommandRepository(pool)
+	pushCancelCommand := pushCommand.NewCancelCommand(pushCommandRepository)
+	cancelPushHandler := handler.NewCancelPushHandler(pushCancelCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()
 
@@ -70,7 +70,7 @@ func cancelPushConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 		}
 	}(cfg.App.Port)
 
-	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelPush, createpushHandler.HandleMessage, prometheusWrapper, cancelPushConsumerOptions)
+	consumer := rabbitmq.NewConsumer(rabbitMqClient, rabbitmq.Queue_CancelPush, cancelPushHandler.HandleMessage, prometheusWrapper, cancelPushConsumerOptions)
 	if err = consumer.Start(ctx); err != nil {
 		log.Fatal(err)
 	}

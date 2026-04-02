@@ -34,10 +34,12 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchSm
 			Type:           request.Type,
 			Content:        request.Content,
 			IdempotencyKey: xxhash.Sum64String(idempotencyString),
+			Priority:       request.Priority,
 		}
 
-		if request.ScheduledAt != nil {
-			smsEvent.ScheduledAt = request.ScheduledAt.Unix()
+		if !request.ScheduledAt.IsZero() {
+			unix := request.ScheduledAt.Unix()
+			smsEvent.ScheduledAt = &unix
 		}
 
 		switch request.Priority {
@@ -70,6 +72,9 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchSm
 }
 
 func (s *sendBatchCommand) publishBatch(ctx context.Context, eventList []sms.CreateSmsEvent, routingKey string) error {
+	if len(eventList) == 0 {
+		return nil
+	}
 	result := make([]any, 0, len(eventList))
 	for _, v := range eventList {
 		result = append(result, v)

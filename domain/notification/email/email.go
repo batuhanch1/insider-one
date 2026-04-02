@@ -7,9 +7,9 @@ import (
 
 type Emails []Email
 type Email struct {
-	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
-	SentAt         int64  `json:"sent_at,omitempty"`
-	DeletedAt      int64  `json:"deleted_at,omitempty"`
+	ScheduledAt    *int64 `json:"scheduled_at,omitempty"`
+	SentAt         *int64 `json:"sent_at,omitempty"`
+	DeletedAt      *int64 `json:"deleted_at,omitempty"`
 	CreatedAt      int64  `json:"created_at,omitempty"`
 	ID             uint64 `json:"id,omitempty"`
 	IdempotencyKey uint64 `json:"idempotency_key,omitempty"`
@@ -24,7 +24,7 @@ type Email struct {
 }
 
 func (e *Email) IsScheduled() bool {
-	return e.ScheduledAt > time.Now().Unix()
+	return e.ScheduledAt != nil && *e.ScheduledAt > time.Now().Unix()
 }
 
 func (e *Email) SetStatus() {

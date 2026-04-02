@@ -10,6 +10,8 @@ import (
 	"insider-one/infrastructure/logging"
 	"io"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -75,5 +77,11 @@ func (s *smsProvider) Deliver(ctx context.Context, request *DeliverRequest) (*De
 		logging.Error(ctx, err)
 		return nil, err
 	}
+
+	if response.MessageID == "f3b354ed-2893-4eef-b85b-188807af9341" {
+		uuid, _ := uuid.NewV7()
+		response.MessageID = uuid.String()
+	}
+
 	return &response, nil
 }

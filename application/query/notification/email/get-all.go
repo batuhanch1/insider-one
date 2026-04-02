@@ -11,10 +11,10 @@ type GetAllQuery interface {
 	Execute(ctx context.Context, request GetAllEmailRequest) (*GetAllEmailResponse, error)
 }
 type getAllQuery struct {
-	EmailRepository email.Repository
+	EmailRepository email.QueryRepository
 }
 
-func NewGetAllQuery(emailRepository email.Repository) GetAllQuery {
+func NewGetAllQuery(emailRepository email.QueryRepository) GetAllQuery {
 	return &getAllQuery{emailRepository}
 }
 

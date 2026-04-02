@@ -12,10 +12,10 @@ type GetStatusByBatchIDQuery interface {
 }
 
 type getStatusByBatchIDQuery struct {
-	pushRepository push.Repository
+	pushRepository push.QueryRepository
 }
 
-func NewGetStatusByBatchIDQuery(pushRepository push.Repository) GetStatusByBatchIDQuery {
+func NewGetStatusByBatchIDQuery(pushRepository push.QueryRepository) GetStatusByBatchIDQuery {
 	return &getStatusByBatchIDQuery{pushRepository}
 }
 

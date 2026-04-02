@@ -12,10 +12,10 @@ type GetEmailStatusByIDQuery interface {
 }
 
 type getEmailStatusByIDQuery struct {
-	EmailRepository email.Repository
+	EmailRepository email.QueryRepository
 }
 
-func NewGetStatusByIDQuery(emailRepository email.Repository) GetEmailStatusByIDQuery {
+func NewGetStatusByIDQuery(emailRepository email.QueryRepository) GetEmailStatusByIDQuery {
 	return &getEmailStatusByIDQuery{emailRepository}
 }
 
@@ -26,6 +26,9 @@ func (g *getEmailStatusByIDQuery) Execute(ctx context.Context, request GetEmailS
 		err = fmt.Errorf("error get email status by id in getEmailStatusByIDQuery: %w", err)
 		logging.Error(ctx, err)
 		return nil, err
+	}
+	if len(getStatusByID) == 0 {
+		return nil, nil
 	}
 
 	response := GetEmailStatusByIDResponse{

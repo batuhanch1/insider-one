@@ -24,14 +24,25 @@ var createEmailConsumerCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	RunE:  createEmailConsumerCmdRun,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		priority, _ := cmd.Flags().GetString("priority")
+
+		if !rabbitmq.IsPriorityRoutingKeyValid(priority) {
+			panic("invalid priority")
+		}
+	},
 }
 
 func init() {
+	createEmailConsumerCmd.Flags().String("priority", "", "priority (HIGH|MEDIUM|LOW)")
 	rootCmd.AddCommand(createEmailConsumerCmd)
 }
 
 func createEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
+	priority, _ := cmd.Flags().GetString("priority")
+	env, _ := cmd.Flags().GetString("env")
+
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -48,6 +59,7 @@ func createEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
 		ExchangeName: rabbitmq.Exchange_CreateEmail,
+		ExchangeType: "direct",
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
@@ -59,8 +71,8 @@ func createEmailConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	defer pool.Close()
 	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 
-	emailRepository := emailPersistence.NewRepository(pool)
-	emailCreateCommand := emailCommand.NewCreateCommand(emailRepository, publisher)
+	emailCommandRepository := emailPersistence.NewCommandRepository(pool)
+	emailCreateCommand := emailCommand.NewCreateCommand(emailCommandRepository, publisher)
 	createEmailHandler := handler.NewCreateEmailHandler(emailCreateCommand)
 
 	prometheusWrapper := prometheusWrapper.InitForConsumer()

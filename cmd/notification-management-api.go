@@ -18,6 +18,7 @@ import (
 	"insider-one/infrastructure/middleware"
 	prometheusWrapper "insider-one/infrastructure/prometheus"
 	_ "insider-one/projects/notification-management-api"
+	notification_management_api "insider-one/projects/notification-management-api"
 	"insider-one/projects/notification-management-api/api/healthcheck"
 	emailController "insider-one/projects/notification-management-api/api/v1/email"
 	pushController "insider-one/projects/notification-management-api/api/v1/push"
@@ -53,6 +54,7 @@ func init() {
 func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
 
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -64,6 +66,11 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	}
 	defer pool.Close()
 
+	err = postgresql.Migrate(ctx, pool)
+	if err != nil {
+		return err
+	}
+
 	rabbitMqClient, err := rabbitmq.New(ctx, cfg)
 	if err != nil {
 		return err
@@ -71,47 +78,43 @@ func notificationManagementApiCmdRun(cmd *cobra.Command, args []string) (err err
 	defer rabbitMqClient.Close()
 
 	publisher := rabbitmq.NewPublisher(rabbitMqClient)
-	batchPublisherChannel, err := rabbitMqClient.Channel(ctx)
-	if err != nil {
-		return err
-	}
+	batchPublisher := rabbitmq.NewBatchPublisher(rabbitMqClient)
 
-	batchPublisher := rabbitmq.NewBatchPublisher(batchPublisherChannel)
-
-	emailRepository := emailPersistence.NewRepository(pool)
+	emailQueryRepository := emailPersistence.NewQueryRepository(pool)
 
 	sendEmailCommand := emailCommand.NewSendCommand(publisher)
-	cancelEmailCommand := emailCommand.NewCancelCommand(emailRepository, publisher)
+	emailEnqueueCancelCommand := emailCommand.NewEnqueueCancelCommand(emailQueryRepository, publisher)
 	sendBatchEmailCommand := emailCommand.NewSendBatchCommand(batchPublisher)
 
-	getAllEmailQuery := emailQuery.NewGetAllQuery(emailRepository)
-	getStatusByIDEmailQuery := emailQuery.NewGetStatusByIDQuery(emailRepository)
-	getStatusByBatchIDEmailQuery := emailQuery.NewGetStatusByBatchIDQuery(emailRepository)
-	emailController := emailController.NewController(sendEmailCommand, sendBatchEmailCommand, cancelEmailCommand, getAllEmailQuery, getStatusByBatchIDEmailQuery, getStatusByIDEmailQuery)
+	getAllEmailQuery := emailQuery.NewGetAllQuery(emailQueryRepository)
+	getStatusByIDEmailQuery := emailQuery.NewGetStatusByIDQuery(emailQueryRepository)
+	getStatusByBatchIDEmailQuery := emailQuery.NewGetStatusByBatchIDQuery(emailQueryRepository)
+	emailController := emailController.NewController(sendEmailCommand, sendBatchEmailCommand, emailEnqueueCancelCommand, getAllEmailQuery, getStatusByBatchIDEmailQuery, getStatusByIDEmailQuery)
 
-	smsRepository := smsPersistence.NewRepository(pool)
+	smsQueryRepository := smsPersistence.NewQueryRepository(pool)
 
 	sendSmsCommand := smsCommand.NewSendCommand(publisher)
-	cancelSmsCommand := smsCommand.NewCancelCommand(smsRepository, publisher)
+	smsEnqueueCancelCommand := smsCommand.NewEnqueueCancelCommand(smsQueryRepository, publisher)
 	sendBatchSmsCommand := smsCommand.NewSendBatchCommand(batchPublisher)
 
-	getAllSmsQuery := smsQuery.NewGetAllQuery(smsRepository)
-	getStatusByIDSmsQuery := smsQuery.NewGetStatusByIDQuery(smsRepository)
-	getStatusByBatchIDSmsQuery := smsQuery.NewGetStatusByBatchIDQuery(smsRepository)
-	smsController := smsController.NewController(sendSmsCommand, sendBatchSmsCommand, cancelSmsCommand, getAllSmsQuery, getStatusByBatchIDSmsQuery, getStatusByIDSmsQuery)
+	getAllSmsQuery := smsQuery.NewGetAllQuery(smsQueryRepository)
+	getStatusByIDSmsQuery := smsQuery.NewGetStatusByIDQuery(smsQueryRepository)
+	getStatusByBatchIDSmsQuery := smsQuery.NewGetStatusByBatchIDQuery(smsQueryRepository)
+	smsController := smsController.NewController(sendSmsCommand, sendBatchSmsCommand, smsEnqueueCancelCommand, getAllSmsQuery, getStatusByBatchIDSmsQuery, getStatusByIDSmsQuery)
 
-	pushRepository := pushPersistence.NewRepository(pool)
+	pushQueryRepository := pushPersistence.NewQueryRepository(pool)
 
 	sendPushCommand := pushCommand.NewSendCommand(publisher)
-	cancelPushCommand := pushCommand.NewCancelCommand(pushRepository, publisher)
+	pushEnqueueCancelCommand := pushCommand.NewEnqueueCancelCommand(pushQueryRepository, publisher)
 	sendBatchPushCommand := pushCommand.NewSendBatchCommand(batchPublisher)
 
-	getAllPushQuery := pushQuery.NewGetAllQuery(pushRepository)
-	getStatusByIDPushQuery := pushQuery.NewGetStatusByIDQuery(pushRepository)
-	getStatusByBatchIDPushQuery := pushQuery.NewGetStatusByBatchIDQuery(pushRepository)
-	pushController := pushController.NewController(sendPushCommand, sendBatchPushCommand, cancelPushCommand, getAllPushQuery, getStatusByBatchIDPushQuery, getStatusByIDPushQuery)
+	getAllPushQuery := pushQuery.NewGetAllQuery(pushQueryRepository)
+	getStatusByIDPushQuery := pushQuery.NewGetStatusByIDQuery(pushQueryRepository)
+	getStatusByBatchIDPushQuery := pushQuery.NewGetStatusByBatchIDQuery(pushQueryRepository)
+	pushController := pushController.NewController(sendPushCommand, sendBatchPushCommand, pushEnqueueCancelCommand, getAllPushQuery, getStatusByBatchIDPushQuery, getStatusByIDPushQuery)
 
 	gin.SetMode(gin.ReleaseMode)
+	notification_management_api.RegisterValidators()
 	router := gin.Default()
 
 	prometheusWrapper := prometheusWrapper.InitForAPI()

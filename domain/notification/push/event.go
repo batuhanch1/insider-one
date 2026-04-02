@@ -1,7 +1,7 @@
 package push
 
 type CreatePushEvent struct {
-	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
+	ScheduledAt    *int64 `json:"scheduled_at,omitempty"`
 	IdempotencyKey uint64 `json:"idempotency_key,omitempty"`
 	Sender         string `json:"sender,omitempty"`
 	PhoneNumber    string `json:"phone_number,omitempty"`
@@ -15,7 +15,7 @@ type CancelPushEvent struct {
 }
 
 type PushCreatedEvent struct {
-	ScheduledAt    int64  `json:"scheduled_at,omitempty"`
+	ScheduledAt    *int64 `json:"scheduled_at,omitempty"`
 	IdempotencyKey uint64 `json:"idempotency_key,omitempty"`
 	Sender         string `json:"sender,omitempty"`
 	PhoneNumber    string `json:"phone_number,omitempty"`

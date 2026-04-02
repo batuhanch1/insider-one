@@ -28,7 +28,9 @@
                     {
                         "enum": [
                             "PENDING",
-                            "SENT"
+                            "DELIVERED",
+                            "SCHEDULED",
+                            "CANCELLED"
                         ],
                         "type": "string",
                         "description": "Status filter",
@@ -308,7 +310,9 @@
                     {
                         "enum": [
                             "PENDING",
-                            "SENT"
+                            "DELIVERED",
+                            "SCHEDULED",
+                            "CANCELLED"
                         ],
                         "type": "string",
                         "description": "Status filter",
@@ -588,7 +592,9 @@
                     {
                         "enum": [
                             "PENDING",
-                            "SENT"
+                            "DELIVERED",
+                            "SCHEDULED",
+                            "CANCELLED"
                         ],
                         "type": "string",
                         "description": "Status filter",
@@ -896,6 +902,9 @@
                 "message_id": {
                     "type": "string"
                 },
+                "priority": {
+                    "type": "string"
+                },
                 "scheduled_at": {
                     "type": "integer"
                 },
@@ -1188,6 +1197,9 @@
                 "phone_number": {
                     "type": "string"
                 },
+                "priority": {
+                    "type": "string"
+                },
                 "scheduled_at": {
                     "type": "integer"
                 },
@@ -1466,6 +1478,9 @@
                     "type": "integer"
                 },
                 "phone_number": {
+                    "type": "string"
+                },
+                "priority": {
                     "type": "string"
                 },
                 "scheduled_at": {

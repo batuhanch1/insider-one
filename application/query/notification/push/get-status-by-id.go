@@ -12,10 +12,10 @@ type GetPushStatusByIDQuery interface {
 }
 
 type getPushStatusByIDQuery struct {
-	pushRepository push.Repository
+	pushRepository push.QueryRepository
 }
 
-func NewGetStatusByIDQuery(pushRepository push.Repository) GetPushStatusByIDQuery {
+func NewGetStatusByIDQuery(pushRepository push.QueryRepository) GetPushStatusByIDQuery {
 	return &getPushStatusByIDQuery{pushRepository}
 }
 

@@ -12,10 +12,10 @@ type GetStatusByBatchIDQuery interface {
 }
 
 type getStatusByBatchIDQuery struct {
-	smsRepository sms.Repository
+	smsRepository sms.QueryRepository
 }
 
-func NewGetStatusByBatchIDQuery(smsRepository sms.Repository) GetStatusByBatchIDQuery {
+func NewGetStatusByBatchIDQuery(smsRepository sms.QueryRepository) GetStatusByBatchIDQuery {
 	return &getStatusByBatchIDQuery{smsRepository}
 }
 

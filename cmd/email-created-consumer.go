@@ -26,14 +26,24 @@ var emailCreatedConsumerCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	RunE:  emailCreatedConsumerCmdRun,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		priority, _ := cmd.Flags().GetString("priority")
+
+		if !rabbitmq.IsPriorityRoutingKeyValid(priority) {
+			panic("invalid priority")
+		}
+	},
 }
 
 func init() {
+	emailCreatedConsumerCmd.Flags().String("priority", "", "priority (HIGH|MEDIUM|LOW)")
 	rootCmd.AddCommand(emailCreatedConsumerCmd)
 }
 
 func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
+	priority, _ := cmd.Flags().GetString("priority")
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -50,6 +60,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
 		ExchangeName: rabbitmq.Exchange_EmailCreated,
+		ExchangeType: "direct",
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
@@ -62,7 +73,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	httpClient := client.NewClient()
-	emailRepository := emailPersistence.NewRepository(pool)
+	emailRepository := emailPersistence.NewCommandRepository(pool)
 	emailProvider := emailProvider.NewEmailProvider(httpClient, cfg.EmailProvider)
 	emailDeliverCommand := emailCommand.NewDeliverCommand(emailRepository, emailProvider, publisher)
 	emailCreatedHandler := handler.NewEmailCreatedHandler(emailDeliverCommand)
@@ -86,7 +97,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 }
 
 func emailCreatedConsumerOptions(o *rabbitmq.ConsumerOptions) {
-	o.WorkerCount = 10
-	o.PrefetchCount = 10
+	o.WorkerCount = 1
+	o.PrefetchCount = 1
 	o.MaxRetry = 5
 }

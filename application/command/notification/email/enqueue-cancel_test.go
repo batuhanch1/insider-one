@@ -16,7 +16,7 @@ func TestCancelEmailCommand_Execute_Success_PublishesForEachID(t *testing.T) {
 	repo.On("GetByStatus", mock.Anything, "PENDING").Return([]uint64{1, 2, 3}, nil)
 	pub.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	cmd := NewCancelCommand(repo, pub)
+	cmd := NewEnqueueCancelCommand(repo, pub)
 	ctx := context.Background()
 
 	err := cmd.Execute(ctx, CancelEmailRequest{Status: "PENDING"})
@@ -30,7 +30,7 @@ func TestCancelEmailCommand_Execute_EmptyIDs_NoPublish(t *testing.T) {
 
 	repo.On("GetByStatus", mock.Anything, "PENDING").Return([]uint64{}, nil)
 
-	cmd := NewCancelCommand(repo, pub)
+	cmd := NewEnqueueCancelCommand(repo, pub)
 	ctx := context.Background()
 
 	err := cmd.Execute(ctx, CancelEmailRequest{Status: "PENDING"})
@@ -44,7 +44,7 @@ func TestCancelEmailCommand_Execute_GetByStatusError(t *testing.T) {
 
 	repo.On("GetByStatus", mock.Anything, "PENDING").Return(nil, errors.New("db error"))
 
-	cmd := NewCancelCommand(repo, pub)
+	cmd := NewEnqueueCancelCommand(repo, pub)
 	ctx := context.Background()
 
 	err := cmd.Execute(ctx, CancelEmailRequest{Status: "PENDING"})
@@ -59,7 +59,7 @@ func TestCancelEmailCommand_Execute_PublisherError_StopsLoop(t *testing.T) {
 	repo.On("GetByStatus", mock.Anything, "PENDING").Return([]uint64{1, 2}, nil)
 	pub.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("mq error")).Once()
 
-	cmd := NewCancelCommand(repo, pub)
+	cmd := NewEnqueueCancelCommand(repo, pub)
 	ctx := context.Background()
 
 	err := cmd.Execute(ctx, CancelEmailRequest{Status: "PENDING"})

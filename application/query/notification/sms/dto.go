@@ -25,14 +25,14 @@ type GetSmsStatusByIDResponse struct {
 type GetAllSmsRequest struct {
 	CreateDate *time.Time `form:"create_date"`
 	EndDate    *time.Time `form:"end_date"`
-	Status     string     `form:"status" binding:"required,oneof=PENDING SENT"`
+	Status     string     `form:"status" binding:"required,oneof=PENDING DELIVERED SCHEDULED CANCELLED"`
 	Page       int        `form:"page" binding:"required,min=1"`
 	PageSize   int        `form:"page_size" binding:"required,min=0,max=50"`
 }
 
 type GetAllSmsResponse struct {
-	SmsList    sms.SmsList `json:"smsList,omitempty"`
-	TotalCount int         `json:"total_count,omitempty"`
+	SmsList    sms.SmsList `json:"smsList"`
+	TotalCount int         `json:"total_count"`
 	Page       int         `json:"page,omitempty" binding:"required,min=1"`
 	PageSize   int         `json:"page_size,omitempty" binding:"required,min=0,max=50"`
 }

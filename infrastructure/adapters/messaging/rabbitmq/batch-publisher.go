@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"insider-one/infrastructure/logging"
-	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -17,11 +16,11 @@ type BatchPublisher interface {
 }
 
 type batchPublisher struct {
-	channel *amqp.Channel
+	client *Client
 }
 
-func NewBatchPublisher(channel *amqp.Channel) BatchPublisher {
-	return &batchPublisher{channel}
+func NewBatchPublisher(client *Client) BatchPublisher {
+	return &batchPublisher{client}
 }
 
 type BatchPublisherOptions struct {
@@ -36,22 +35,21 @@ func (p *batchPublisher) Publish(ctx context.Context, vList []any, opts BatchPub
 		return errors.New("maks len 1000")
 	}
 
-	p.channel.Confirm(false)
-	confirms := p.channel.NotifyPublish(make(chan amqp.Confirmation, 1000))
+	channel, err := p.client.Channel(ctx)
+	if err != nil {
+		err = fmt.Errorf("publisher: open channel: %w", err)
+		logging.Error(ctx, err)
+		return err
+	}
+	defer channel.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	if err := channel.Confirm(false); err != nil {
+		return fmt.Errorf("publisher: confirm mode: %w", err)
+	}
 
-	go func() {
-		defer wg.Done()
+	confirms := channel.NotifyPublish(make(chan amqp.Confirmation, len(vList)))
 
-		for confirm := range confirms {
-			if !confirm.Ack {
-				logging.Error(ctx, errors.New(fmt.Sprintf("Message NOT delivered: %d", confirm.DeliveryTag)))
-			}
-		}
-	}()
-
+	publishedCount := 0
 	for _, v := range vList {
 		body, err := json.Marshal(v)
 		if err != nil {
@@ -64,7 +62,7 @@ func (p *batchPublisher) Publish(ctx context.Context, vList []any, opts BatchPub
 			deliveryMode = amqp.Persistent
 		}
 
-		err = p.channel.PublishWithContext(
+		err = channel.PublishWithContext(
 			ctx,
 			opts.Exchange,
 			opts.RoutingKey,
@@ -82,7 +80,21 @@ func (p *batchPublisher) Publish(ctx context.Context, vList []any, opts BatchPub
 		if err != nil {
 			logging.Error(ctx, fmt.Errorf("publisher: publish json: %w", err))
 		}
+		publishedCount++
 	}
-	wg.Wait()
+	for i := 0; i < publishedCount; i++ {
+		select {
+		case confirm, ok := <-confirms:
+			if !ok {
+				return errors.New("publisher: confirms channel closed unexpectedly")
+			}
+			if !confirm.Ack {
+				logging.Error(ctx, fmt.Errorf("publisher: message NOT delivered: deliveryTag=%d", confirm.DeliveryTag))
+			}
+		case <-ctx.Done():
+			return fmt.Errorf("publisher: context cancelled while waiting for confirms: %w", ctx.Err())
+		}
+	}
+
 	return nil
 }

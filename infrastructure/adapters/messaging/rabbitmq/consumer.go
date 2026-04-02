@@ -155,6 +155,7 @@ func (c *Consumer) processMessage(ctx context.Context, ch *amqp.Channel, msg amq
 		msg.Ack(false)
 		return
 	}
+	msg.Headers["error"] = err.Error()
 	c.PrometheusWrapper.ConsumerMessagesTotal.WithLabelValues(c.queueName, "failed").Inc()
 
 	logging.Error(ctx, fmt.Errorf("message handler failed. worker: %v, queue: %s, error: %w", workerID, c.queueName, err))

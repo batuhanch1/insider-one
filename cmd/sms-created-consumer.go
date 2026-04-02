@@ -26,14 +26,24 @@ var smsCreatedConsumerCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	RunE:  smsCreatedConsumerCmdRun,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		priority, _ := cmd.Flags().GetString("priority")
+
+		if !rabbitmq.IsPriorityRoutingKeyValid(priority) {
+			panic("invalid priority")
+		}
+	},
 }
 
 func init() {
+	smsCreatedConsumerCmd.Flags().String("priority", "", "priority (HIGH|MEDIUM|LOW)")
 	rootCmd.AddCommand(smsCreatedConsumerCmd)
 }
 
 func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 	ctx := context.Background()
+	priority, _ := cmd.Flags().GetString("priority")
+	env, _ := cmd.Flags().GetString("env")
 	cfg, err := config.Load(ctx, cmd.Use, env)
 	if err != nil {
 		return err
@@ -50,6 +60,7 @@ func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	err = rabbitmq.DeclareTopology(ctx, rabbitMqClient, rabbitmq.TopologyOptions{
 		ExchangeName: rabbitmq.Exchange_SmsCreated,
+		ExchangeType: "direct",
 		QueueName:    genericQueueName,
 		RoutingKey:   genericRoutingKey,
 	})
@@ -62,7 +73,7 @@ func smsCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 
 	publisher := rabbitmq.NewPublisher(rabbitMqClient)
 	httpClient := client.NewClient()
-	smsRepository := smsPersistence.NewRepository(pool)
+	smsRepository := smsPersistence.NewCommandRepository(pool)
 	smsProvider := smsProvider.NewSmsProvider(httpClient, cfg.SmsProvider)
 	smsDeliverCommand := smsCommand.NewDeliverCommand(smsRepository, smsProvider, publisher)
 	smsCreatedHandler := handler.NewSmsCreatedHandler(smsDeliverCommand)

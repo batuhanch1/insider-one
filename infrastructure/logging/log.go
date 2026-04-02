@@ -46,7 +46,7 @@ func InternalLogStart(ctx context.Context, request *http.Request) {
 
 }
 
-func InternalLogFinish(ctx context.Context, response *http.Response) {
+func InternalLogFinish(ctx context.Context, request *http.Request, response *http.Response) {
 
 	var logModel = logModel{
 		Time:    time.Now().Format(utils.Layout_Time),
@@ -54,7 +54,7 @@ func InternalLogFinish(ctx context.Context, response *http.Response) {
 		Message: utils.LogStatus_FinishRequest,
 	}
 
-	logModel.addCorrelationId(ctx).addResponseBody(response).addResponseDetails(response).addRequestDetails(response.Request).setDuration(ctx, utils.Header_InternalRequestStartTime).do()
+	logModel.addCorrelationId(ctx).addResponseBody(response).addResponseDetails(response).addRequestDetails(request).setDuration(ctx, utils.Header_InternalRequestStartTime).do()
 
 }
 

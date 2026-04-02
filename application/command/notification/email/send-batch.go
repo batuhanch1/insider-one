@@ -35,9 +35,11 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchEm
 			Content:        request.Content,
 			Type:           request.Type,
 			IdempotencyKey: xxhash.Sum64String(idempotencyString),
+			Priority:       request.Priority,
 		}
-		if request.ScheduledAt != nil {
-			emailEvent.ScheduledAt = request.ScheduledAt.Unix()
+		if !request.ScheduledAt.IsZero() {
+			unix := request.ScheduledAt.Unix()
+			emailEvent.ScheduledAt = &unix
 		}
 		switch request.Priority {
 		case notification.Notification_Priority_High:
@@ -49,17 +51,17 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchEm
 		}
 	}
 	if err := s.publishBatch(ctx, highEventList, rabbitmq.RoutingKey_High); err != nil {
-		err = fmt.Errorf("error publishing create high email event in send batch command: %w", err)
+		err = fmt.Errorf("error publishing create high email event in send batch Command: %w", err)
 		logging.Error(ctx, err)
 		return err
 	}
 	if err := s.publishBatch(ctx, mediumEventList, rabbitmq.RoutingKey_Medium); err != nil {
-		err = fmt.Errorf("error publishing create medium email event in send batch command: %w", err)
+		err = fmt.Errorf("error publishing create medium email event in send batch Command: %w", err)
 		logging.Error(ctx, err)
 		return err
 	}
 	if err := s.publishBatch(ctx, lowEventList, rabbitmq.RoutingKey_Low); err != nil {
-		err = fmt.Errorf("error publishing create low email event in send batch command: %w", err)
+		err = fmt.Errorf("error publishing create low email event in send batch Command: %w", err)
 		logging.Error(ctx, err)
 		return err
 	}
@@ -67,6 +69,9 @@ func (s *sendBatchCommand) Execute(ctx context.Context, batchRequest SendBatchEm
 	return nil
 }
 func (s *sendBatchCommand) publishBatch(ctx context.Context, eventList []email.CreateEmailEvent, routingKey string) error {
+	if len(eventList) == 0 {
+		return nil
+	}
 	result := make([]any, 0, len(eventList))
 	for _, v := range eventList {
 		result = append(result, v)

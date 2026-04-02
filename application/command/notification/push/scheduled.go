@@ -14,11 +14,11 @@ type ScheduleCommand interface {
 }
 
 type scheduleCommand struct {
-	Repository push.Repository
+	Repository push.QueryRepository
 	Publisher  rabbitmq.Publisher
 }
 
-func NewScheduleCommand(repository push.Repository, publisher rabbitmq.Publisher) ScheduleCommand {
+func NewScheduleCommand(repository push.QueryRepository, publisher rabbitmq.Publisher) ScheduleCommand {
 	return &scheduleCommand{repository, publisher}
 }
 

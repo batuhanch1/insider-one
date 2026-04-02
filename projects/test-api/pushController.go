@@ -2,6 +2,7 @@ package test_api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"insider-one/application/command/notification/push"
@@ -43,7 +44,7 @@ func (c *pushController) Cancel(g *gin.Context) {
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
 
-	req, err := http.NewRequest(http.MethodPut, "localhost:8080/api/v1/push/cancel", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest(http.MethodPut, "http://localhost:8080/api/v1/push/cancel", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		err = fmt.Errorf("push test Cancel NewRequest error %w", err)
 		logging.Error(ctx, err)
@@ -51,7 +52,7 @@ func (c *pushController) Cancel(g *gin.Context) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", "admin123")
+	req.SetBasicAuth("admin", "1234")
 
 	var resp *http.Response
 	if resp, err = c.client.Do(ctx, req); err != nil {
@@ -61,17 +62,17 @@ func (c *pushController) Cancel(g *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("push bad response: %d", resp.StatusCode)
 		logging.Error(ctx, err)
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
-	return
+	g.JSON(http.StatusOK, nil)
 }
 
 func generatePhone() string {
 	prefixes := []string{
-		"0505", "0506", "0532", "0533", "0542", "0543", "0555",
+		"90505", "90506", "90532", "90533", "90542", "90543", "90555",
 	}
 
 	prefix := prefixes[rand.Intn(len(prefixes))]
@@ -81,10 +82,12 @@ func generatePhone() string {
 		number += fmt.Sprintf("%d", rand.Intn(10))
 	}
 
-	return prefix + number
+	return "+" + prefix + number
 }
 
 func (c *pushController) SendBatch(g *gin.Context) {
+	ctx, cancel := context.WithTimeout(g.Copy(), time.Minute*5)
+	defer cancel()
 	for j := 0; j < 1000; j++ {
 		var request push.SendBatchPushRequest
 		for i := 0; i < 1000; i++ {
@@ -98,7 +101,7 @@ func (c *pushController) SendBatch(g *gin.Context) {
 			n := rand.Intn(100)
 			if n > 50 {
 				nextTime := time.Now().Add(time.Hour * 1)
-				p.ScheduledAt = &nextTime
+				p.ScheduledAt = nextTime
 			}
 			prio := rand.Intn(3)
 			switch prio {
@@ -108,10 +111,11 @@ func (c *pushController) SendBatch(g *gin.Context) {
 				p.Priority = notification.Notification_Priority_Low
 			case 3:
 				p.Priority = notification.Notification_Priority_Medium
+			default:
+				p.Priority = notification.Notification_Priority_Medium
 			}
 			request.Pushes = append(request.Pushes, p)
 		}
-		ctx := g.Copy()
 		bodyBytes, err := json.Marshal(request)
 		if err != nil {
 			err = fmt.Errorf("push test SendBatch Marshal error %w", err)
@@ -119,7 +123,7 @@ func (c *pushController) SendBatch(g *gin.Context) {
 			g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 		}
 
-		req, err := http.NewRequest(http.MethodPost, "localhost:8080/api/v1/push/batch", bytes.NewBuffer(bodyBytes))
+		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/v1/push/batch", bytes.NewBuffer(bodyBytes))
 		if err != nil {
 			err = fmt.Errorf("push test SendBatch NewRequest error %w", err)
 			logging.Error(ctx, err)
@@ -127,7 +131,7 @@ func (c *pushController) SendBatch(g *gin.Context) {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.SetBasicAuth("admin", "admin123")
+		req.SetBasicAuth("admin", "1234")
 
 		var resp *http.Response
 		if resp, err = c.client.Do(ctx, req); err != nil {
@@ -137,13 +141,13 @@ func (c *pushController) SendBatch(g *gin.Context) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusAccepted {
+		if resp.StatusCode != http.StatusOK {
 			err = fmt.Errorf("push bad response: %d", resp.StatusCode)
 			logging.Error(ctx, err)
 			g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 		}
-		g.JSON(http.StatusOK, errorHandling.Error(ctx, err))
 	}
+	g.JSON(http.StatusOK, nil)
 }
 
 func (c *pushController) Send(g *gin.Context) {
@@ -158,7 +162,7 @@ func (c *pushController) Send(g *gin.Context) {
 	n := rand.Intn(100)
 	if n > 50 {
 		nextTime := time.Now().Add(time.Hour * 1)
-		request.ScheduledAt = &nextTime
+		request.ScheduledAt = nextTime
 	}
 	p := rand.Intn(3)
 	switch p {
@@ -168,6 +172,8 @@ func (c *pushController) Send(g *gin.Context) {
 		request.Priority = notification.Notification_Priority_Low
 	case 3:
 		request.Priority = notification.Notification_Priority_Medium
+	default:
+		request.Priority = notification.Notification_Priority_High
 	}
 
 	ctx := g.Copy()
@@ -178,7 +184,7 @@ func (c *pushController) Send(g *gin.Context) {
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
 
-	req, err := http.NewRequest(http.MethodPost, "localhost:8080/api/v1/push", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/v1/push", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		err = fmt.Errorf("push test Send NewRequest error %w", err)
 		logging.Error(ctx, err)
@@ -186,7 +192,7 @@ func (c *pushController) Send(g *gin.Context) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", "admin123")
+	req.SetBasicAuth("admin", "1234")
 
 	var resp *http.Response
 	if resp, err = c.client.Do(ctx, req); err != nil {
@@ -196,10 +202,10 @@ func (c *pushController) Send(g *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("push bad response: %d", resp.StatusCode)
 		logging.Error(ctx, err)
 		g.JSON(http.StatusBadRequest, errorHandling.Error(ctx, err))
 	}
-	g.JSON(http.StatusOK, errorHandling.Error(ctx, err))
+	g.JSON(http.StatusOK, nil)
 }
