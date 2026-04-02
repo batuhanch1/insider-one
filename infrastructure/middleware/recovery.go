@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	errorHandling "insider-one/infrastructure/error-handling"
 	"insider-one/infrastructure/logging"
-	"insider-one/infrastructure/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,22 +34,5 @@ func Recovery() gin.HandlerFunc {
 		}()
 
 		ginContext.Next()
-	}
-}
-
-func RecoveryWithoutHttp() {
-	if r := recover(); r != nil {
-		switch r.(type) {
-		case errorHandling.Errors:
-			errors := r.(errorHandling.Errors)
-			ctx := context.WithValue(context.Background(), utils.Header_CorrelationID, errors.CorrelationID)
-			logging.Error(ctx, errors.Err)
-		default:
-			err, ok := r.(error)
-			if !ok {
-				err = fmt.Errorf("%v", r)
-			}
-			logging.Error(context.Background(), err)
-		}
 	}
 }
