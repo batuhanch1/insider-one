@@ -1,0 +1,21 @@
+# docker compose -p insider-one -f redis-compose.yml up -d
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7.2
+    container_name: redis
+    restart: always
+    command: >
+      redis-server
+      --requirepass redispassword123
+      --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      - TZ=Europe/Istanbul
+
+volumes:
+  redis_data:

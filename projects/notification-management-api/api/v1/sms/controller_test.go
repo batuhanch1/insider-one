@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	command "insider-one/application/command/notification/sms"
 	query "insider-one/application/query/notification/sms"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -82,6 +85,26 @@ func setupRouter(ctrl Controller) *gin.Engine {
 }
 
 func TestSmsController_Send_Success(t *testing.T) {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+
+		// gt_now
+		_ = v.RegisterValidation("gt_now", func(fl validator.FieldLevel) bool {
+			val, ok := fl.Field().Interface().(*time.Time)
+			if !ok || val == nil {
+				return true // omitempty olduğu için nil geçsin
+			}
+			return val.After(time.Now())
+		})
+
+		// within_one_year
+		_ = v.RegisterValidation("within_one_year", func(fl validator.FieldLevel) bool {
+			val, ok := fl.Field().Interface().(*time.Time)
+			if !ok || val == nil {
+				return true
+			}
+			return val.Before(time.Now().AddDate(1, 0, 0))
+		})
+	}
 	sendCmd := &mockSendCommand{}
 	sendCmd.On("Execute", mock.Anything, mock.Anything).Return(nil)
 

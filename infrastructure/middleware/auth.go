@@ -1,10 +1,26 @@
 package middleware
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
 
 func AuthRequired() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
-		// ... check token, session, etc.
+		username, password, ok := ginContext.Request.BasicAuth()
+
+		if !ok || !validateUser(username, password) {
+			ginContext.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Unauthorized",
+			})
+			return
+		}
+
 		ginContext.Next()
 	}
+}
+
+func validateUser(username, password string) bool {
+	return username == "admin" && password == "1234"
 }

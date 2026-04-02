@@ -6,6 +6,42 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
+  - job_name: "cancel-email-consumer"
+    static_configs:
+      - targets: ["localhost:8081"]
+
+  - job_name: "cancel-push-consumer"
+    static_configs:
+      - targets: [ "localhost:8082" ]
+
+  - job_name: "cancel-sms-consumer"
+    static_configs:
+      - targets: [ "localhost:8083" ]
+
+  - job_name: "create-email-consumer"
+    static_configs:
+      - targets: [ "localhost:8084" ]
+
+  - job_name: "create-push-consumer"
+    static_configs:
+      - targets: [ "localhost:8085" ]
+
+  - job_name: "create-sms-consumer"
+    static_configs:
+      - targets: [ "localhost:8086" ]
+
+  - job_name: "email-created-consumer"
+    static_configs:
+      - targets: [ "localhost:8087" ]
+
   - job_name: "notification-management-api"
     static_configs:
-      - targets: ["localhost:8080"]
+      - targets: [ "localhost:8080" ]
+
+  - job_name: "push-created-consumer"
+    static_configs:
+      - targets: [ "localhost:8088" ]
+
+  - job_name: "sms-created-consumer"
+    static_configs:
+      - targets: [ "localhost:8089" ]
