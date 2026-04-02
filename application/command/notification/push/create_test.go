@@ -46,8 +46,9 @@ func TestCreatePushCommand_Execute_Scheduled_SkipsPublish(t *testing.T) {
 
 	cmd := NewCreateCommand(repo, pub)
 	ctx := context.Background()
+	scheduledAt := time.Now().Unix() + 3600
 	event := push_domain.CreatePushEvent{
-		ScheduledAt: time.Now().Unix() + 3600,
+		ScheduledAt: &scheduledAt,
 		Sender:      "PUSH",
 		PhoneNumber: "+1555",
 	}

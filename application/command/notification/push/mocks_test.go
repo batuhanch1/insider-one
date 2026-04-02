@@ -58,8 +58,8 @@ func (m *mockPushRepository) GetByStatus(ctx context.Context, status string) ([]
 	return args.Get(0).([]uint64), args.Error(1)
 }
 
-func (m *mockPushRepository) UpdateStatus(ctx context.Context, ids []uint64) error {
-	args := m.Called(ctx, ids)
+func (m *mockPushRepository) Cancel(ctx context.Context, id uint64) error {
+	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 

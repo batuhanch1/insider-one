@@ -68,8 +68,9 @@ func TestScheduleEmailCommand_Execute_PublisherError_ReturnsNil(t *testing.T) {
 	repo := &mockEmailRepository{}
 	pub := &mockPublisher{}
 
+	scheduledAt := time.Now().Unix() + 300
 	emails := email_domain.Emails{
-		{ID: 1, Priority: "HIGH", ScheduledAt: time.Now().Unix() + 300},
+		{ID: 1, Priority: "HIGH", ScheduledAt: &scheduledAt},
 	}
 	repo.On("GetScheduled", mock.Anything, mock.Anything).Return(emails, nil)
 	pub.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("mq error"))

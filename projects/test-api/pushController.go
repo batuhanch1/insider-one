@@ -153,10 +153,10 @@ func (c *pushController) SendBatch(g *gin.Context) {
 func (c *pushController) Send(g *gin.Context) {
 	id, _ := uuid.NewV7()
 	var request = push.SendPushRequest{
-		Sender:      fmt.Sprintf("TESTSENDER_%d", id.String()),
+		Sender:      fmt.Sprintf("TESTSENDER_%s", id.String()),
 		PhoneNumber: generatePhone(),
 		Type:        "test_push_type",
-		Content:     fmt.Sprintf("Content Batch %d", id.String()),
+		Content:     fmt.Sprintf("Content Batch %s", id.String()),
 	}
 
 	n := rand.Intn(100)

@@ -35,13 +35,12 @@ func TestGetEmailStatusByIDQuery_Execute_RepositoryError(t *testing.T) {
 	assert.Nil(t, response)
 }
 
-func TestGetEmailStatusByIDQuery_Execute_EmptyResult_Panics(t *testing.T) {
-	// Production code accesses getStatusByID[0] without bounds check — panics on empty slice
+func TestGetEmailStatusByIDQuery_Execute_EmptyResult_ReturnsNil(t *testing.T) {
 	repo := &mockEmailRepository{}
 	repo.On("GetStatusByID", mock.Anything, mock.Anything).Return(email_domain.Emails{}, nil)
 
 	q := NewGetStatusByIDQuery(repo)
-	assert.Panics(t, func() {
-		_, _ = q.Execute(context.Background(), GetEmailStatusByIDRequest{ID: 999})
-	})
+	response, err := q.Execute(context.Background(), GetEmailStatusByIDRequest{ID: 999})
+	assert.NoError(t, err)
+	assert.Nil(t, response)
 }

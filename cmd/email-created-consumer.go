@@ -97,7 +97,7 @@ func emailCreatedConsumerCmdRun(cmd *cobra.Command, args []string) (err error) {
 }
 
 func emailCreatedConsumerOptions(o *rabbitmq.ConsumerOptions) {
-	o.WorkerCount = 1
-	o.PrefetchCount = 1
+	o.WorkerCount = 10
+	o.PrefetchCount = 10
 	o.MaxRetry = 5
 }

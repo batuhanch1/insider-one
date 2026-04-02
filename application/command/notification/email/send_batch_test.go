@@ -32,7 +32,7 @@ func TestSendBatchEmailCommand_Execute_AllPriorities_PublishesThreeTimes(t *test
 	bp.AssertNumberOfCalls(t, "Publish", 3)
 }
 
-func TestSendBatchEmailCommand_Execute_OnlyHighPriority_StillCallsPublishThreeTimes(t *testing.T) {
+func TestSendBatchEmailCommand_Execute_OnlyHighPriority_CallsPublishOnce(t *testing.T) {
 	bp := &mockBatchPublisher{}
 	bp.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
@@ -47,8 +47,8 @@ func TestSendBatchEmailCommand_Execute_OnlyHighPriority_StillCallsPublishThreeTi
 
 	err := cmd.Execute(ctx, req)
 	assert.NoError(t, err)
-	// All 3 publishBatch calls happen regardless of list content
-	bp.AssertNumberOfCalls(t, "Publish", 3)
+	// publishBatch skips empty lists, so only HIGH list triggers a Publish call
+	bp.AssertNumberOfCalls(t, "Publish", 1)
 }
 
 func TestSendBatchEmailCommand_Execute_HighPriorityPublisherError_ReturnsError(t *testing.T) {

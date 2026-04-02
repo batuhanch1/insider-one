@@ -62,6 +62,7 @@ Scheduled Job ──► polls SCHEDULED notifications ──► transitions to P
 | `{email,push,sms}-created-consumer` | 3 | Deliver via provider |
 | `cancel-{email,push,sms}-consumer` | 3 | Process cancellations |
 | `{email,push,sms}-scheduled-job` | 3 | Promote scheduled → pending |
+| `test-api` | 1 | Load-test helper — fires random notifications directly to the API |
 
 ### RabbitMQ Topology
 
@@ -188,6 +189,9 @@ All components share the same binary and are selected via a subcommand.
 ./insider-one email-scheduled-job --env qa
 ./insider-one push-scheduled-job  --env qa
 ./insider-one sms-scheduled-job   --env qa
+
+# Load-test helper (fires random notifications against the API)
+./insider-one test-api --env qa
 ```
 
 ---

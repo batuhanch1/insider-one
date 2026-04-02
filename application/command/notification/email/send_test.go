@@ -65,7 +65,7 @@ func TestSendEmailCommand_Execute_WithScheduledAt_SetsScheduledAtOnEvent(t *test
 	req := SendEmailRequest{
 		To: "to@example.com", From: "from@example.com",
 		Subject: "Sub", Content: "Body", Type: "T", Priority: "MEDIUM",
-		ScheduledAt: &future,
+		ScheduledAt: future,
 	}
 
 	err := cmd.Execute(ctx, req)

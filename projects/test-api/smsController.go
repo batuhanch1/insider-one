@@ -140,7 +140,7 @@ func (c *smsController) Send(g *gin.Context) {
 		Sender:      "SENDER",
 		PhoneNumber: generatePhone(),
 		Type:        "test_push_type",
-		Content:     fmt.Sprintf("Content Batch %d", id.String()),
+		Content:     fmt.Sprintf("Content Batch %s", id.String()),
 	}
 
 	n := rand.Intn(100)

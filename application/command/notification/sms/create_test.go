@@ -46,8 +46,9 @@ func TestCreateSmsCommand_Execute_Scheduled_SavesAndSkipsPublish(t *testing.T) {
 
 	cmd := NewCreateCommand(repo, pub)
 	ctx := context.Background()
+	scheduledAt := time.Now().Unix() + 3600
 	event := sms_domain.CreateSmsEvent{
-		ScheduledAt: time.Now().Unix() + 3600,
+		ScheduledAt: &scheduledAt,
 		PhoneNumber: "+15551234567",
 		Sender:      "S",
 		Type:        "T",
